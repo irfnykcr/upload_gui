@@ -1,4 +1,5 @@
 from functools import partial
+from json import load
 from random import randint
 from shutil import rmtree
 from threading import Thread
@@ -7,17 +8,19 @@ from cryptography.fernet import Fernet
 from os import listdir, mkdir, path
 from deflate import zlib_compress
 from requests import post
-
-UNIQUE_KEY = "someapikey"
-F_LOC = r"c:/Users/user/Desktop/file.7z"
-F_NAME = f"file.7z"
-F_ABOUT = f"it is a 7z file"
-F_CATEGORY = "main/"
-F_TYPE = "other"
-F_PRIVATE = 1
-MAX_THREADS = 10 # ±1
-TMP_DIR = r"C:\Users\irfn\Desktop\tmpdir"
-
+from sys import argv
+with open(r"./config.json", "r") as f:
+	j = load(f)
+	UNIQUE_KEY = j['api_key']
+	MAX_THREADS = j['max_threads'] # ±1
+	TMP_DIR = j['tmp_dir']
+# python main.py "C:/Users/user/Desktop/file.7z" "file.7z" "it is a 7z file" "main/" "other" "1"
+F_LOC = fr"{argv[1]}"
+F_NAME = argv[2]
+F_ABOUT = argv[3]
+F_CATEGORY = argv[4]
+F_TYPE = argv[5]
+F_PRIVATE = argv[6]
 
 THREADS_NOW = 0
 REEL_HASH = ""

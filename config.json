@@ -1,0 +1,5 @@
+{
+	"api_key": "someapikey",
+	"max_threads": 10,
+	"tmp_dir": "C:/Users/user/Desktop/tmpdir"
+}
