@@ -1,0 +1,158 @@
+from functools import partial
+from random import randint
+from shutil import rmtree
+from threading import Thread
+from time import perf_counter_ns, time, sleep
+from cryptography.fernet import Fernet
+from os import listdir, mkdir, path
+from deflate import zlib_compress
+from requests import post
+
+UNIQUE_KEY = "someapikey"
+F_LOC = r"c:/Users/user/Desktop/file.7z"
+F_NAME = f"file.7z"
+F_ABOUT = f"it is a 7z file"
+F_CATEGORY = "main/"
+F_TYPE = "other"
+F_PRIVATE = 1
+MAX_THREADS = 10 # ±1
+TMP_DIR = r"C:\Users\irfn\Desktop\tmpdir"
+
+
+THREADS_NOW = 0
+REEL_HASH = ""
+FSIZE = path.getsize(F_LOC)
+def add_url(urls:str):
+	global UNIQUE_KEY
+	global REEL_HASH
+	data_j = {"weburl":REEL_HASH.decode("utf-8"), "urls":urls}
+	r = post("https://api.turkuazz.online/upload/add_url", headers={"api-key":UNIQUE_KEY}, json=data_j)
+	if r.status_code != 200:
+		return r.status_code
+	return r.content
+def add_file():
+	global F_NAME
+	global F_ABOUT
+	global F_CATEGORY
+	global F_TYPE
+	global F_PRIVATE
+	global FSIZE
+	global UNIQUE_KEY
+	data = {"name":F_NAME, "size":FSIZE, "about":F_ABOUT, "category":F_CATEGORY, "type":F_TYPE, "private":F_PRIVATE}
+	r = post("https://api.turkuazz.online/upload/add_file", headers={"api-key":UNIQUE_KEY}, json=data)
+	if r.status_code != 200:
+		return r.status_code
+	return r.content
+def getkey():
+	global UNIQUE_KEY
+	r = post("https://api.turkuazz.online/upload/getkey", headers={"api-key":UNIQUE_KEY})
+	if r.status_code != 200:
+		return False
+	return r.content
+
+ferkey = getkey()
+FER = Fernet(ferkey)
+def slice():
+	global GENHASH
+	global F_LOC
+	global TMP_DIR
+	global FSIZE
+	outfile= fr"{TMP_DIR}/{GENHASH}"
+
+	totalnumber = (FSIZE/1024/1024)/3
+	if totalnumber > int(totalnumber):
+		totalnumber = int(totalnumber)+1
+	mkdir(outfile)
+	n = 0
+	tlist = []
+	def wFile(filename:int, data:bytes):
+		data = FER.encrypt(data)
+		fsize = len(data)
+		filename_len = 5-len(str(filename))
+		if filename_len > 0:
+			filename = "0"*filename_len + str(filename)
+		with open(fr"{outfile}/{filename}_{fsize}.trkz", "wb") as f:
+			f.write(zlib_compress(data, 6))
+	with open(F_LOC, "rb") as f:
+		for u in iter(partial(f.read, 3072001), b''):
+			if n % 10 == 0:
+				print(f"{n}/{totalnumber}",end="\r")
+			if n % 1000 == 0:
+				for th in tlist:
+					th.start()
+				for th in tlist:
+					th.join()
+				tlist = []
+			tlist.append(Thread(target=wFile, args=(n,u,)))
+			n+=1
+		for th in tlist:
+			print(f"<1000 tamamlanıyor..",end="\r")
+			th.start()
+		for th in tlist:
+			th.join()
+	return True
+
+GENHASH = str(round(time() * 10000)) # unique name
+slice()
+print("\r\nsliced!\n")
+
+
+REEL_HASH = add_file()
+if REEL_HASH == False:
+	print("mysql error!")
+	exit()
+print("\r\nmysql okay!\n")
+
+URLS_LIST = []
+def upfunc(name:str) -> list:
+	global UNIQUE_KEY
+	global URLS_LIST
+	global TARGET_LEN
+	global START_DATE
+	global THREADS_NOW
+	global MAX_THREADS
+	while THREADS_NOW > MAX_THREADS:
+		sleep(randint(1,3))
+	THREADS_NOW += 1
+	file = fr"{TMP_DIR}/{GENHASH}/{name}"
+	print(f"+ {name}")
+	with open(file, "rb") as f:
+		data = f.read()
+	url = post("https://api.turkuazz.online/upload/upfile", headers={"api-key": UNIQUE_KEY}, data=data)
+	THREADS_NOW -= 1
+	if url.status_code != 200:
+		return upfunc(name)
+
+	url = url.content.decode()
+	url = url.split(",")
+	
+	x = name.replace(".trkz", "").split("_")
+	fsize = x[1]
+	fsira = int(x[0])
+	url = [str(url[0]), int(url[1]), fsize, fsira]
+	URLS_LIST.append(url)
+	lenurllist = len(URLS_LIST) + 1
+	up_s = round(lenurllist/((perf_counter_ns()/10e8)-START_DATE), 2)
+	print(f"- {name} --:: {lenurllist}/{TARGET_LEN} = {round((lenurllist/TARGET_LEN)*100, 2)}% --:: {up_s}up/s --:: kalan ~= {round(((TARGET_LEN-lenurllist)/up_s)/60, 2)}dk")
+	return
+
+listdir_genhash = listdir(fr"{TMP_DIR}/{GENHASH}")
+TARGET_LEN = len(listdir_genhash)
+START_DATE = perf_counter_ns()/10e8
+
+threads = []
+for i in listdir_genhash:
+	threads.append(Thread(target=upfunc, args=(i,)))
+
+[th.start() for th in threads]
+[th.join() for th in threads]
+
+print("\r\n\nupload okay! making adjustments..")
+URLS_LIST.sort(key=lambda x: x[-1])
+urls = [x[:-1] for x in URLS_LIST]
+
+add_url(str(urls))
+
+print("\r\nall is okay!")
+rmtree(fr"{TMP_DIR}/{GENHASH}")
+print(REEL_HASH)
