@@ -9,6 +9,7 @@ from os import listdir, mkdir, path
 from deflate import zlib_compress
 from requests import post
 from sys import argv
+print(f"starting..")
 with open(r"./config/config.json", "r") as f:
 	j = load(f)
 	UNIQUE_KEY = j['api_key']
@@ -28,10 +29,12 @@ FSIZE = path.getsize(F_LOC)
 def add_url(urls:str):
 	global UNIQUE_KEY
 	global REEL_HASH
-	data_j = {"weburl":REEL_HASH.decode("utf-8"), "urls":urls}
+	if type(REEL_HASH) == bytes:
+		REEL_HASH = REEL_HASH.decode("utf-8")
+	data_j = {"weburl":REEL_HASH, "urls":urls}
 	r = post("https://api.turkuazz.online/upload/add_url", headers={"api-key":UNIQUE_KEY}, json=data_j)
 	if r.status_code != 200:
-		return r.status_code
+		return False, r.content
 	return r.content
 def add_file():
 	global F_NAME
@@ -44,16 +47,19 @@ def add_file():
 	data = {"name":F_NAME, "size":FSIZE, "about":F_ABOUT, "category":F_CATEGORY, "type":F_TYPE, "private":F_PRIVATE}
 	r = post("https://api.turkuazz.online/upload/add_file", headers={"api-key":UNIQUE_KEY}, json=data)
 	if r.status_code != 200:
-		return r.status_code
+		return False, r.content
 	return r.content
 def getkey():
 	global UNIQUE_KEY
 	r = post("https://api.turkuazz.online/upload/getkey", headers={"api-key":UNIQUE_KEY})
 	if r.status_code != 200:
-		return False
+		return False, r.content
 	return r.content
 
 ferkey = getkey()
+if ferkey[0] == False:
+	print(f"something went wrong while getting ferkey! {ferkey[1]}")
+	exit()
 FER = Fernet(ferkey)
 def slice():
 	global GENHASH
@@ -79,7 +85,7 @@ def slice():
 	with open(F_LOC, "rb") as f:
 		for u in iter(partial(f.read, 3072001), b''):
 			if n % 10 == 0:
-				print(f"{n}/{totalnumber}",end="\r")
+				print(f"{n}/{totalnumber}")
 			if n % 1000 == 0:
 				for th in tlist:
 					th.start()
@@ -89,7 +95,7 @@ def slice():
 			tlist.append(Thread(target=wFile, args=(n,u,)))
 			n+=1
 		for th in tlist:
-			print(f"<1000 tamamlanıyor..",end="\r")
+			print(f"<1000 tamamlanıyor..")
 			th.start()
 		for th in tlist:
 			th.join()
@@ -97,14 +103,14 @@ def slice():
 
 GENHASH = str(round(time() * 10000)) # unique name
 slice()
-print("\r\nsliced!\n")
+print("sliced!")
 
 
 REEL_HASH = add_file()
-if REEL_HASH == False:
-	print("mysql error!")
+if REEL_HASH[0] == False:
+	print(f"mysql error! {REEL_HASH[1]}")
 	exit()
-print("\r\nmysql okay!\n")
+print("mysql okay!")
 
 URLS_LIST = []
 def upfunc(name:str) -> list:
@@ -134,7 +140,7 @@ def upfunc(name:str) -> list:
 	fsira = int(x[0])
 	url = [str(url[0]), int(url[1]), fsize, fsira]
 	URLS_LIST.append(url)
-	lenurllist = len(URLS_LIST) + 1
+	lenurllist = len(URLS_LIST)
 	up_s = round(lenurllist/((perf_counter_ns()/10e8)-START_DATE), 2)
 	print(f"- {name} --:: {lenurllist}/{TARGET_LEN} = {round((lenurllist/TARGET_LEN)*100, 2)}% --:: {up_s}up/s --:: kalan ~= {round(((TARGET_LEN-lenurllist)/up_s)/60, 2)}dk")
 	return
@@ -150,12 +156,14 @@ for i in listdir_genhash:
 [th.start() for th in threads]
 [th.join() for th in threads]
 
-print("\r\n\nupload okay! making adjustments..")
+print("upload okay! making adjustments..")
 URLS_LIST.sort(key=lambda x: x[-1])
 urls = [x[:-1] for x in URLS_LIST]
 
-add_url(str(urls))
-
-print("\r\nall is okay!")
+r = add_url(str(urls))
+if r[0] == False:
+	print(f"something went wrong while adding urls! {r[1]}")
+	exit()
+print("all is okay!")
 rmtree(fr"{TMP_DIR}/{GENHASH}")
 print(REEL_HASH)
