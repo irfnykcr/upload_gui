@@ -36,6 +36,8 @@ cd ..
 Run the script
 ```bash
 python main.py <location> <name> <about> <category> <type> <private>
+OR
+python gui.py
 ```
 Example
 ```bash
