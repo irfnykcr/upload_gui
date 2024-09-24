@@ -36,10 +36,10 @@ cd ..
 Run the script
 ```bash
 python main.py <location> <name> <about> <category> <type> <private>
-OR
-python gui.py
-```
-Example
-```bash
+i.e:
 python main.py "C:/Users/user/Desktop/file.7z" "file.7z" "it is a 7z file" "main/" "other" "1"
+```
+Or start the gui
+```bash
+python gui.py
 ```
