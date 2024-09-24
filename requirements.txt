@@ -1,0 +1,3 @@
+cryptography==38.0.4
+deflate==0.7.0
+Requests==2.32.3
