@@ -15,7 +15,6 @@ with open(r"./config/config.json", "r") as f:
 	UNIQUE_KEY = j['api_key']
 	MAX_THREADS = j['max_threads'] # ±1
 	TMP_DIR = j['tmp_dir']
-# python main.py "C:/Users/user/Desktop/file.7z" "file.7z" "it is a 7z file" "main/" "other" "1"
 F_LOC = fr"{argv[1]}"
 F_NAME = argv[2]
 F_ABOUT = argv[3]
@@ -32,7 +31,7 @@ def add_url(urls:str):
 	if type(REEL_HASH) == bytes:
 		REEL_HASH = REEL_HASH.decode("utf-8")
 	data_j = {"weburl":REEL_HASH, "urls":urls}
-	r = post("https://api.turkuazz.online/upload/add_url", headers={"api-key":UNIQUE_KEY}, json=data_j)
+	r = post("https://api.turkuazz.online/v1/upload/add_url", headers={"api-key":UNIQUE_KEY}, json=data_j)
 	if r.status_code != 200:
 		return False, r.content
 	return r.content
@@ -45,13 +44,13 @@ def add_file():
 	global FSIZE
 	global UNIQUE_KEY
 	data = {"name":F_NAME, "size":FSIZE, "about":F_ABOUT, "category":F_CATEGORY, "type":F_TYPE, "private":F_PRIVATE}
-	r = post("https://api.turkuazz.online/upload/add_file", headers={"api-key":UNIQUE_KEY}, json=data)
+	r = post("https://api.turkuazz.online/v1/upload/add_file", headers={"api-key":UNIQUE_KEY}, json=data)
 	if r.status_code != 200:
 		return False, r.content
 	return r.content
 def getkey():
 	global UNIQUE_KEY
-	r = post("https://api.turkuazz.online/upload/getkey", headers={"api-key":UNIQUE_KEY})
+	r = post("https://api.turkuazz.online/v1/upload/getkey", headers={"api-key":UNIQUE_KEY})
 	if r.status_code != 200:
 		return False, r.content
 	return r.content
@@ -127,7 +126,7 @@ def upfunc(name:str) -> list:
 	print(f"+ {name}")
 	with open(file, "rb") as f:
 		data = f.read()
-	url = post("https://api.turkuazz.online/upload/upfile", headers={"api-key": UNIQUE_KEY}, data=data)
+	url = post("https://api.turkuazz.online/v1/upload/upfile", headers={"api-key": UNIQUE_KEY}, data=data)
 	THREADS_NOW -= 1
 	if url.status_code != 200:
 		return upfunc(name)
@@ -166,4 +165,4 @@ if r[0] == False:
 	exit()
 print("all is okay!")
 rmtree(fr"{TMP_DIR}/{GENHASH}")
-print(REEL_HASH)
+print(f"url-id: {REEL_HASH}")
