@@ -2,7 +2,7 @@ from json import load
 import requests
 from sys import argv
 from threading import Thread 
-from time import perf_counter_ns, sleep, time
+from time import perf_counter_ns, time
 
 print("starting..")
 
