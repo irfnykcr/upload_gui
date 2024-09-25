@@ -2,16 +2,22 @@ from json import load
 import requests
 from sys import argv
 from threading import Thread 
-from time import perf_counter_ns, sleep
+from time import perf_counter_ns, sleep, time
 
 print("starting..")
 
 WEBURL = argv[1]
-OUTDIR = fr"{argv[2]}"
 with open(r"./config/config.json", "r") as f:
 	j = load(f)
 	UNIQUE_KEY = j['api_key']
 	MAX_THREADS = j['max_threads'] # ±1
+	try:
+		OUTDIR = argv[2]
+	except:
+		print("no outdir given. using outdir from config.")
+		OUTDIR = j['outdir']
+	TMP_DIR = j['tmp_dir']
+
 THREADS_NOW = 0
 
 def getfile_info():
@@ -33,20 +39,21 @@ def download_chunk(url, n):
 	global UNIQUE_KEY
 	global DONE
 	global TOTAL
+	global DATALIST
+	global TIME_STARTED
 	try:
 		print(f"+ {n}")
 		r = requests.post(f"https://api.turkuazz.online/v1/download/get_chunk", headers={"api-key":UNIQUE_KEY}, json={"url":url})
 		data = r.content
 		if r.status_code != 200:
+			print(f"something went wrong with {n} - post, retrying..",r.status_code, r.content)
 			return download_chunk(url, n)
 		DATALIST.append((n,data))
 		DONE+=1
 		up_s = round(DONE/((perf_counter_ns()/10e8)-TIME_STARTED), 2)
 		print(f"- {n} --:: downloaded {round((DONE/TOTAL)*100,2)}% --:: {DONE}/{TOTAL} --:: {up_s}up/s --:: kalan ~= {round(((TOTAL-DONE)/up_s)/60, 2)}dk")
-		return data
 	except Exception as e:
-		print(f"something went wrong with {n}, will try again in 5sec", e)
-		sleep(5)
+		print(f"something went wrong with {n}, trying again.", e)
 		return download_chunk(url, n)
 
 threads = []
@@ -63,16 +70,22 @@ print("starting threads..")
 TIME_STARTED = perf_counter_ns()/10e8
 
 def write_downloaded():
-	global STARTED_THREAD
 	global DATALIST
 	global WEBURL
 	global NAME
-	STARTED_THREAD = []
 	DATALIST.sort(key=lambda x: x[0])
 	with open(fr"{OUTDIR}/{WEBURL}.{NAME}", "ab") as f:
 		for data in DATALIST:
-			print(f"~ writing: {data[0]}")
-			f.write(data[1])
+			lendata = len(data[1])
+			print(f"~ writing: {data[0]} --:: size: {lendata}")
+			if lendata > 3072001:
+				f.write(data[1][:3072001])
+				log_fname = fr"{TMP_DIR}/{WEBURL}.{NAME}.{int(time())}.log"
+				with open(log_fname, "ab") as fl:
+					print(f"found excess data. writing into: {log_fname}")
+					fl.write(data[1][3072001:])
+			else:
+				f.write(data[1])
 	DATALIST = []
 
 for t in threads:
@@ -83,11 +96,12 @@ for t in threads:
 		for th in STARTED_THREAD:
 			th.join()
 		write_downloaded()
-
-print("finishing last ones..")
-
-for th in STARTED_THREAD:
-	th.join()
-write_downloaded()
+		STARTED_THREAD = []
+lenkalan = len(STARTED_THREAD)
+print(f"finishing last ones.. len:{lenkalan}")
+if lenkalan > 0:
+	for th in STARTED_THREAD:
+		th.join()
+	write_downloaded()
 
 print("all is okay!")
