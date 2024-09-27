@@ -14,6 +14,8 @@ with open(r"./config/config.json", "r") as f:
 	j = load(f)
 	UNIQUE_KEY = j['api_key']
 	MAX_THREADS = j['max_threads'] # ±1
+	MAX_RETRY = j['max_retry']
+	RETRIES = 0
 	TMP_DIR = j['tmp_dir']
 F_LOC = fr"{argv[1]}"
 F_NAME = argv[2]
@@ -54,11 +56,17 @@ def getkey():
 	if r.status_code != 200:
 		return False, r.content
 	return r.content
+def abort():
+	global GENHASH
+	rmtree(fr"{TMP_DIR}/{GENHASH}")
+	exit()
+
+
 
 ferkey = getkey()
 if ferkey[0] == False:
 	print(f"something went wrong while getting ferkey! {ferkey[1]}")
-	exit()
+	abort()
 FER = Fernet(ferkey)
 def slice():
 	global GENHASH
@@ -108,7 +116,7 @@ print("sliced!")
 REEL_HASH = add_file()
 if REEL_HASH[0] == False:
 	print(f"mysql error! {REEL_HASH[1]}")
-	exit()
+	abort()
 print("mysql okay!")
 
 URLS_LIST = []
@@ -119,6 +127,8 @@ def upfunc(name:str) -> list:
 	global START_DATE
 	global THREADS_NOW
 	global MAX_THREADS
+	global RETRIES
+	global MAX_RETRY
 	while THREADS_NOW > MAX_THREADS:
 		sleep(randint(1,3))
 	THREADS_NOW += 1
@@ -129,6 +139,11 @@ def upfunc(name:str) -> list:
 	url = post("https://api.turkuazz.online/v1/upload/upfile", headers={"api-key": UNIQUE_KEY}, data=data)
 	THREADS_NOW -= 1
 	if url.status_code != 200:
+		if RETRIES >= MAX_RETRY:
+			print(f"something went wrong while uploading file! exitting. {url.content} {url.status_code}")
+			abort()
+		RETRIES += 1
+		print(f"something went wrong while uploading file! retrying.. {url.content} {url.status_code}")
 		return upfunc(name)
 
 	url = url.content.decode()
@@ -159,10 +174,10 @@ print("upload okay! making adjustments..")
 URLS_LIST.sort(key=lambda x: x[-1])
 urls = [x[:-1] for x in URLS_LIST]
 
-r = add_url(str(urls))
+r = add_url(str(urls).replace(" ", ""))
 if r[0] == False:
 	print(f"something went wrong while adding urls! {r[1]}")
-	exit()
+	abort()
 print("all is okay!")
 rmtree(fr"{TMP_DIR}/{GENHASH}")
 print(f"url-id: {REEL_HASH}")

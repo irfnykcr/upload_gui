@@ -1,5 +1,5 @@
 from threading import Thread
-from tkinter import Tk, Canvas, Entry, Text, Button, filedialog
+from tkinter import Tk, Canvas, Entry, Text, Button, Toplevel, filedialog
 from tkinter.ttk import Combobox
 from json import load
 from requests import post
@@ -8,15 +8,15 @@ from datetime import datetime
 
 
 window = Tk()
-
-window.title("upload")
-window.iconbitmap(r"./assets/favicon.ico")
 width = 900
 height = 720
 x = (window.winfo_screenwidth() - width) // 2
 y = (window.winfo_screenheight() - height) // 2
-window.configure(bg = "#181818")
 window.geometry(f"900x720+{x}+{y}")
+
+window.title("upload")
+window.iconbitmap(r"./assets/favicon.ico")
+window.configure(bg = "#181818")
 
 FILE = ""
 ACCEPTED_CHR = list("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+-[]{} ")
@@ -337,7 +337,6 @@ def page1():
 		width=150,
 		height=50
 	)
-
 
 
 def page2():

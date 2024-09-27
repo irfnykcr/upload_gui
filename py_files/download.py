@@ -11,6 +11,8 @@ with open(r"./config/config.json", "r") as f:
 	j = load(f)
 	UNIQUE_KEY = j['api_key']
 	MAX_THREADS = j['max_threads'] # ±1
+	MAX_RETRY = j['max_retry']
+	RETRIES = 0
 	try:
 		OUTDIR = argv[2]
 	except:
@@ -41,11 +43,17 @@ def download_chunk(url, n):
 	global TOTAL
 	global DATALIST
 	global TIME_STARTED
+	global MAX_RETRY
+	global RETRIES
 	try:
 		print(f"+ {n}")
 		r = requests.post(f"https://api.turkuazz.online/v1/download/get_chunk", headers={"api-key":UNIQUE_KEY}, json={"url":url})
 		data = r.content
 		if r.status_code != 200:
+			if RETRIES >= MAX_RETRY:
+				print(f"something went wrong while uploading file! exitting. {r.content} {r.status_code}")
+				exit()
+			RETRIES += 1
 			print(f"something went wrong with {n} - post, retrying..",r.status_code, r.content)
 			return download_chunk(url, n)
 		DATALIST.append((n,data))
