@@ -1,11 +1,13 @@
+from sys import stdout
 from threading import Thread
-from tkinter import Tk, Canvas, Entry, Text, Button, Toplevel, filedialog
+from tkinter import Tk, Canvas, Entry, Text, Button, filedialog
 from tkinter.ttk import Combobox
 from json import load
 from requests import post
 from subprocess import PIPE, Popen
 from datetime import datetime
-
+from uuid import uuid4
+stdout.reconfigure(line_buffering=True)
 
 window = Tk()
 width = 900
@@ -47,6 +49,7 @@ def page1():
 	b_start = ""
 	t_console = ""
 	global CMD
+	global CMD_GEN
 	global CANVAS1
 	global CANVAS2
 	try:
@@ -67,97 +70,22 @@ def page1():
 		with open("./config/config.json", "r") as f:
 			j = load(f)
 			CMD = fr"{j['cmd_upload']}"
+			CMD_GEN = fr"{j['cmd_gen']}"
 			API_KEY = j['api_key']
 		r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
 		CATEGORIES = r.json()
 	except:
-		print("something went wrong. check your api key.")
-		exit()
-
-	allof = []
-	for i in CATEGORIES:
-		allof.append(f"{i}/")
-		for k in CATEGORIES[i]:
-			allof.append(f"{i}/{k}/")
-			for l in CATEGORIES[i][k]:
-				allof.append(f"{i}/{k}/{l}/")
-
-	choices = [0,1]
-	t_private = Combobox(
-		window,
-		values=choices,
-		state="readonly",
-	)
-	t_private.place(
-		x=416,
-		y=306,
-		width=350,
-		height=24.0
-	)
-	t_private.current(0)
-
-
-	choices = ["video","image","txt","other"]
-	t_type = Combobox(
-		window,
-		values=choices,
-		state="readonly",
-	)
-	t_type.place(
-		x=416.0,
-		y=250,
-		width=350,
-		height=24.0
-	)
-	t_type.current(0)
-
-
-
-	t_category = Combobox(
-		window,
-		values=allof,
-		state="readonly",
-	)
-	t_category.place(
-		x=416,
-		y=193,
-		width=350,
-		height=24.0
-	)
-	t_category.current(0)
-
-
-
-	t_about = Entry(
-		bd=0,
-		bg="#FFFFFF",
-		fg="#000000",
-		highlightthickness=0,
-	)
-	t_about.insert(0, "a file")
-	t_about.place(
-		x=416,
-		y=138,
-		width=350,
-		height=24.0
-	)
-
-
-
-	t_filename = Entry(
-		bd=0,
-		bg="#FFFFFF",
-		fg="#000000",
-		highlightthickness=0
-	)
-	t_filename.insert(0, "filename")
-	t_filename.place(
-		x=416,
-		y=82,
-		width=350,
-		height=24.0
-	)
-
+		# print("something went wrong. check your api key.")
+		CANVAS1.create_text(
+			150,
+			300,
+			anchor="nw",
+			text="something went wrong. check your api key.",
+			fill="#DADADA",
+			font=("Inter", 32 * -1)
+		)
+		return
+	
 	def get_file():
 		global FILE
 		global ACCEPTED_CHR
@@ -198,6 +126,85 @@ def page1():
 		width=350,
 		height=24.0
 	)
+
+	t_filename = Entry(
+		bd=0,
+		bg="#FFFFFF",
+		fg="#000000",
+		highlightthickness=0
+	)
+	t_filename.insert(0, "filename")
+	t_filename.place(
+		x=416,
+		y=82,
+		width=350,
+		height=24.0
+	)
+
+	t_about = Entry(
+		bd=0,
+		bg="#FFFFFF",
+		fg="#000000",
+		highlightthickness=0,
+	)
+	t_about.insert(0, "")
+	t_about.place(
+		x=416,
+		y=138,
+		width=350,
+		height=24.0
+	)
+
+	allof = []
+	for i in CATEGORIES:
+		allof.append(f"{i}/")
+		for k in CATEGORIES[i]:
+			allof.append(f"{i}/{k}/")
+			for l in CATEGORIES[i][k]:
+				allof.append(f"{i}/{k}/{l}/")
+	t_category = Combobox(
+		window,
+		values=allof,
+		state="readonly",
+	)
+	t_category.place(
+		x=416,
+		y=193,
+		width=350,
+		height=24.0
+	)
+	t_category.current(0)
+
+	choices = ["video","image","txt","other"]
+	t_type = Combobox(
+		window,
+		values=choices,
+		state="readonly",
+	)
+	t_type.place(
+		x=416.0,
+		y=250,
+		width=350,
+		height=24.0
+	)
+	t_type.current(0)
+
+	choices = [0,1]
+	t_private = Combobox(
+		window,
+		values=choices,
+		state="readonly",
+	)
+	t_private.place(
+		x=416,
+		y=306,
+		width=350,
+		height=24.0
+	)
+	t_private.current(0)
+
+
+	
 
 	CANVAS1.create_text(
 		241,
@@ -264,6 +271,7 @@ def page1():
 		global FILE
 		global CMD
 		global gopage1
+		global CMD_GEN
 		gopage1.config(state="disabled")
 		t_fileloc.config(state="disabled")
 		t_filename.config(state="disabled")
@@ -272,18 +280,38 @@ def page1():
 		t_type.config(state="disabled")
 		t_private.config(state="disabled")
 		b_start.config(state="disabled")
-		args = fr'"{FILE}" "{t_filename.get()}" "{t_about.get()}" "{t_category.get()}" "{t_type.get()}" "{t_private.get()}"'
-		proc = Popen(f"{CMD} {args}", stdout=PIPE, text=True, bufsize=1)
-		change_console(f"{str(datetime.now()).split(' ')[1]}> {args}\n\n")
+		ftype = t_type.get()
+		fname = t_filename.get()
+
+		#generate thumbnail
+		if (ftype == "video") or (ftype == "image"):
+			random_name = fname + uuid4().hex[:5]
+			args = fr'"{FILE}" "{random_name}" "{ftype}"'
+			proc = Popen(fr"{CMD_GEN} {args}", stdout=PIPE, text=True, bufsize=1)
+			change_console(args)
+			while True:
+				line = proc.stdout.readline()
+				change_console(f"{line.strip()}")
+				if not line:
+					break
+		
+		change_console(f"generated random name. {random_name}")
+		change_console("thumbnail generated. uploading file..")
+
+		#uploading file		
+		args = fr'"{FILE}" "{fname}" "{t_about.get()}" "{t_category.get()}" "{ftype}" "{t_private.get()}"'
+		proc = Popen(fr"{CMD} {args}", stdout=PIPE, text=True, bufsize=1)
+		change_console(args)
 		while True:
 			line = proc.stdout.readline()
-			change_console(f"{str(datetime.now()).split(' ')[1]}> {line.strip()}\n\n")
+			change_console(f"{line.strip()}")
 			if not line:
 				break
-		change_console(f"{str(datetime.now()).split(' ')[1]}> you can close the window now.")
-
+		
+		#end
+		change_console("you can close the window now.")
 		gopage1.config(state="normal")
-
+		return
 
 	def start():
 		t = Thread(target=upfunc, daemon=False)
@@ -306,11 +334,12 @@ def page1():
 	def change_console(txt):
 		global t_console
 		t_console.config(state="normal")
-		# t_console.delete("1.0", "end")
+		txt = f"{str(str(datetime.now()).split(' ')[1])[:10]}> {txt}\n\n"
 		t_console.insert("end", txt)
+
 		t_console.config(state="disabled")
 		t_console.see("end")
-
+		return
 	t_console = Text(
 		bd=0,
 		bg="#D9D9D9",
@@ -373,8 +402,15 @@ def page2():
 			j = load(f)
 			CMD = fr"{j['cmd_download']}"
 	except:
-		print("something went wrong with config CMD.")
-		exit()
+		CANVAS1.create_text(
+			150,
+			300,
+			anchor="nw",
+			text="something went wrong. check your api key.",
+			fill="#DADADA",
+			font=("Inter", 32 * -1)
+		)
+		return
 	CANVAS2 = Canvas(
 		window,
 		bg = "#181818",
@@ -464,7 +500,7 @@ def page2():
 		fileurl = ''.join(x for x in fileurl if x.isdigit())
 		args = fr'"{fileurl}" "{OUTDIR}"'
 		change_console(f"{str(datetime.now()).split(' ')[1]}> {args}\n\n")
-		proc = Popen(f"{CMD} {args}", stdout=PIPE, text=True, bufsize=1)
+		proc = Popen(fr"{CMD} {args}", stdout=PIPE, text=True, bufsize=1)
 		while True:
 			line = proc.stdout.readline()
 			change_console(f"{str(datetime.now()).split(' ')[1]}> {line.strip()}\n\n")
