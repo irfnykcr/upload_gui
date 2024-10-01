@@ -92,26 +92,37 @@ def page1():
 		global VIDEO_EXT
 		global PHOTO_EXT
 		global TXT_EXT
-		FILE = filedialog.askopenfilename(title="Select file location", filetypes=(("All files", "*.*"),))
-		t_fileloc.config(text=FILE)
-		t_filename.delete(0, "end")
-
-		filename = FILE.split("/")[-1]
-		ext = "." + filename.split(".")[-1]
-		if ext in VIDEO_EXT:
-			t_type.current(0)
-		elif ext in PHOTO_EXT:
-			t_type.current(1)
-		elif ext in TXT_EXT:
-			t_type.current(2)
+		global t_type
+		global t_fileloc
+		global t_filename
+		FILE = filedialog.askopenfilenames(title="Select file location", filetypes=(("All files", "*.*"),))
+		if len(FILE) == 1:
+			ffile = FILE[0]
+			t_fileloc.config(text=ffile)
+			t_filename.delete(0, "end")
+			filename = ffile.split("/")[-1]
+			ext = "." + filename.split(".")[-1]
+			if ext in VIDEO_EXT:
+				t_type.current(0)
+			elif ext in PHOTO_EXT:
+				t_type.current(1)
+			elif ext in TXT_EXT:
+				t_type.current(2)
+			else:
+				t_type.current(3)
+			for i in filename:
+				if i not in ACCEPTED_CHR:
+					filename = filename.replace(i, "")
+			t_filename.insert(0, filename)
+			return 1
 		else:
-			t_type.current(3)
-		for i in filename:
-			if i not in ACCEPTED_CHR:
-				filename = filename.replace(i, "")
-				
-		t_filename.insert(0, filename)
-		return 1
+			t_fileloc.config(text=[i.split("/")[-1] for i in FILE])
+			t_type.config(state="disabled", values=["auto"])
+			t_type.current(0)
+			t_filename.delete(0, "end")
+			t_filename.insert(0, "auto")
+			t_filename.config(state="disabled")
+			return 1
 	t_fileloc = Button(
 		bg="#FFFFFF",
 		fg="#000000",
@@ -272,6 +283,9 @@ def page1():
 		global CMD
 		global gopage1
 		global CMD_GEN
+		global VIDEO_EXT
+		global PHOTO_EXT
+		global TXT_EXT
 		gopage1.config(state="disabled")
 		t_fileloc.config(state="disabled")
 		t_filename.config(state="disabled")
@@ -282,33 +296,44 @@ def page1():
 		b_start.config(state="disabled")
 		ftype = t_type.get()
 		fname = t_filename.get()
+		autocheck = (len(FILE) > 1)
+		for ffile in FILE:
+			change_console(f"now: {ffile}")
+			if autocheck:
+				fname = ffile.split("/")[-1]
+				ext = "." + fname.split(".")[-1]
+				if ext in VIDEO_EXT:
+					ftype = "video"
+				elif ext in PHOTO_EXT:
+					ftype = "image"
+				elif ext in TXT_EXT:
+					ftype = "txt"
+				else:
+					ftype = "other"
+			#generate thumbnail
+			if (ftype == "video") or (ftype == "image"):
+				random_name = fname + uuid4().hex[:5]
+				args = fr'"{ffile}" "{random_name}" "{ftype}"'
+				proc = Popen(fr"{CMD_GEN} {args}", stdout=PIPE, text=True, bufsize=1)
+				change_console(args)
+				while True:
+					line = proc.stdout.readline()
+					change_console(f"{line.strip()}")
+					if not line:
+						break
+			change_console(f"generated random name. {random_name}")
+			change_console("thumbnail generated. uploading file..")
 
-		#generate thumbnail
-		if (ftype == "video") or (ftype == "image"):
-			random_name = fname + uuid4().hex[:5]
-			args = fr'"{FILE}" "{random_name}" "{ftype}"'
-			proc = Popen(fr"{CMD_GEN} {args}", stdout=PIPE, text=True, bufsize=1)
+			#uploading file		
+			args = fr'"{ffile}" "{fname}" "{t_about.get()}" "{t_category.get()}" "{ftype}" "{t_private.get()}"'
+			proc = Popen(fr"{CMD} {args}", stdout=PIPE, text=True, bufsize=1)
 			change_console(args)
 			while True:
 				line = proc.stdout.readline()
 				change_console(f"{line.strip()}")
 				if not line:
 					break
-		
-		change_console(f"generated random name. {random_name}")
-		change_console("thumbnail generated. uploading file..")
-
-		#uploading file		
-		args = fr'"{FILE}" "{fname}" "{t_about.get()}" "{t_category.get()}" "{ftype}" "{t_private.get()}"'
-		proc = Popen(fr"{CMD} {args}", stdout=PIPE, text=True, bufsize=1)
-		change_console(args)
-		while True:
-			line = proc.stdout.readline()
-			change_console(f"{line.strip()}")
-			if not line:
-				break
-		
-		#end
+			change_console(f"!!uploaded!! {fname}")
 		change_console("you can close the window now.")
 		gopage1.config(state="normal")
 		return
