@@ -2,7 +2,7 @@ from json import load
 from os.path import exists
 from os import listdir, mkdir, remove, rename, system
 from sys import argv, stdout
-from cv2 import CAP_PROP_POS_FRAMES, imwrite, VideoCapture, CAP_PROP_FRAME_COUNT
+from cv2 import CAP_PROP_POS_FRAMES, INTER_AREA, imwrite, VideoCapture, CAP_PROP_FRAME_COUNT, IMWRITE_WEBP_QUALITY, resize
 thefile = fr"{argv[1]}"
 r_name = argv[2]
 ftype = argv[3]
@@ -20,7 +20,11 @@ def thevidframes(floc, amount:int):
 		video.set(CAP_PROP_POS_FRAMES, frame)
 		ret, frame = video.read()
 		if not ret: return 0
-		imwrite(fr'{OUT}\a{name}.webp', frame)
+		scale_percent = 25
+		width = int(frame.shape[1] * scale_percent / 100)
+		height = int(frame.shape[0] * scale_percent / 100)
+		resized = resize(frame, (width,height), interpolation=INTER_AREA)
+		imwrite(fr'{OUT}\a{name}.webp', resized, [IMWRITE_WEBP_QUALITY, 40])
 		return 1
 	global video
 	video = VideoCapture(floc)
@@ -39,21 +43,22 @@ def thevidframes(floc, amount:int):
 	print("frames done.")
 def makewebp(name):
 	global OUT
-	system(fr'ffmpeg -v 32 -hide_banner -stats -loop 0 -framerate 1 -i "{OUT}\a%05d.webp" "{OUT}\{name}.webp"')
+	system(fr'ffmpeg -y -v 32 -hide_banner -stats -loop 0 -framerate 1 -i "{OUT}\a%05d.webp" "{OUT}\{name}.webp"')
 	print("video done!")
 
 if ftype == "video":
 	thevidframes(thefile, 6)
 	makewebp("video")
-	for f in listdir(OUT):
-		if f == "a00003.webp":
-			rename(fr"{OUT}\{f}", fr"{OUT}\still.webp")
-		elif f[-4:] == ".webp":
-			remove(fr"{OUT}\{f}")
+	rename(fr"{OUT}\a00003.webp", fr"{OUT}\still.webp")
+	dir:list = [i for i in listdir(OUT)]
+	dir.remove("still.webp")
+	dir.remove("video.webp")
+	for f in dir:
+		remove(fr"{OUT}\{f}")
 else:
 	thevidframes(thefile, 1)
 	for f in listdir(OUT):
 		if f == "a00001.webp":
 			rename(fr"{OUT}\{f}", fr"{OUT}\still.webp")
-		elif f[-4:] == ".webp":
+		elif f[-5:] == ".webp":
 			remove(fr"{OUT}\{f}")
