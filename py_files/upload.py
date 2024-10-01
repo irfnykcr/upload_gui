@@ -8,7 +8,8 @@ from cryptography.fernet import Fernet
 from os import listdir, mkdir, path
 from deflate import zlib_compress
 from requests import post
-from sys import argv
+from sys import argv, stdout
+stdout.reconfigure(line_buffering=True)
 print("starting..")
 with open(r"./config/config.json", "r") as f:
 	j = load(f)

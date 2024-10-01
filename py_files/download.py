@@ -1,8 +1,9 @@
 from json import load
 import requests
-from sys import argv
+from sys import argv, stdout
 from threading import Thread 
 from time import perf_counter_ns, time
+stdout.reconfigure(line_buffering=True)
 
 print("starting..")
 
