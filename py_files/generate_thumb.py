@@ -3,8 +3,6 @@ from os.path import exists
 from os import listdir, mkdir, remove, rename, system
 from sys import argv, stdout
 from cv2 import CAP_PROP_POS_FRAMES, imwrite, VideoCapture, CAP_PROP_FRAME_COUNT
-# from uuid import uuid4
-# random_name = uuid4().hex
 thefile = fr"{argv[1]}"
 r_name = argv[2]
 ftype = argv[3]
