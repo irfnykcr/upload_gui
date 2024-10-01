@@ -102,8 +102,8 @@ def slice():
 				tlist = []
 			tlist.append(Thread(target=wFile, args=(n,u,)))
 			n+=1
+		print(f"<1000 tamamlanıyor..")
 		for th in tlist:
-			print(f"<1000 tamamlanıyor..")
 			th.start()
 		for th in tlist:
 			th.join()
@@ -157,7 +157,7 @@ def upfunc(name:str) -> list:
 	URLS_LIST.append(url)
 	lenurllist = len(URLS_LIST)
 	up_s = round(lenurllist/((perf_counter_ns()/10e8)-START_DATE), 2)
-	print(f"- {name} --:: {lenurllist}/{TARGET_LEN} = {round((lenurllist/TARGET_LEN)*100, 2)}% --:: {up_s}up/s --:: kalan ~= {round(((TARGET_LEN-lenurllist)/up_s)/60, 2)}dk")
+	print(f"- {name} --:: {lenurllist}/{TARGET_LEN}={round((lenurllist/TARGET_LEN)*100, 2)}% --:: {up_s}up/s --:: kalan ~= {round(((TARGET_LEN-lenurllist)/up_s)/60, 2)}dk")
 	return
 
 listdir_genhash = listdir(fr"{TMP_DIR}/{GENHASH}")
