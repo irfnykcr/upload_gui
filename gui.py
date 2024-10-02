@@ -17,7 +17,10 @@ y = (window.winfo_screenheight() - height) // 2
 window.geometry(f"900x720+{x}+{y}")
 
 window.title("upload")
-window.iconbitmap(r"./assets/favicon.ico")
+try:
+	window.iconbitmap(r"./assets/favicon.ico")
+except:
+	pass
 window.configure(bg = "#181818")
 
 FILE = ""
@@ -321,7 +324,7 @@ def page1():
 					change_console(f"{line.strip()}")
 					if not line:
 						break
-			change_console(f"generated random name. {random_name}")
+				change_console(f"generated random name. {random_name}")
 			change_console("thumbnail generated. uploading file..")
 
 			#uploading file		
