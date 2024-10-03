@@ -1,0 +1,17 @@
+body,nav,html {
+    background-color: #181818 !important;
+}
+a {
+    color: #04aa6d !important;
+}
+p,h1,h2,h3,label,li,button {
+    color: #dadada !important;
+}
+button {
+    background-color: #04aa6d !important;
+	height:40px !important;
+}
+input,ol,textarea,select,.uk-dropdown,pre,code {
+    color: #dadada !important;
+    background-color: #222 !important;
+}

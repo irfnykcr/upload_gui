@@ -1,0 +1,23 @@
+<script src="/js/jquery.js"></script> 
+<div data-include="/stuff/header"></div>
+<div class="current-page"></div>
+<div data-include="/stuff/footer"></div>
+
+
+<script>
+window.addEventListener('pywebviewready', function() {
+	window.pywebview.api.echostuff('ready');
+})
+const urlParams = new URLSearchParams(window.location.search);
+const i = urlParams.get('i');
+
+const current_page = $('.current-page');
+current_page.html('<div class="current-page" data-include="'+i+'"></div>');
+const includes = $('[data-include]');
+$(function () {
+	$.each(includes, function () {
+		var file = $(this).data('include') + '.html';
+		$(this).load(file);
+	});
+});
+</script>
