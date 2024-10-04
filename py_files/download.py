@@ -46,9 +46,10 @@ def download_chunk(url, n):
 	global TIME_STARTED
 	global MAX_RETRY
 	global RETRIES
+	global WEBURL
 	try:
 		print(f"+ {n}")
-		r = requests.post(f"https://api.turkuazz.online/v1/download/get_chunk", headers={"api-key":UNIQUE_KEY}, json={"url":url})
+		r = requests.post(f"https://api.turkuazz.online/v1/download/get_chunk", headers={"api-key":UNIQUE_KEY}, json={"url":url, "weburl":WEBURL})
 		data = r.content
 		if r.status_code != 200:
 			if RETRIES >= MAX_RETRY:
