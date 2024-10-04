@@ -1,6 +1,5 @@
 from datetime import datetime
 from json import load
-from random import randint
 from subprocess import PIPE, Popen
 from uuid import uuid4
 from requests import post
@@ -46,7 +45,7 @@ settings = {
 def changeconsole(msg):
 	global WINDOW
 	c = WINDOW.dom.get_element(".console")
-	c.append(f"<p>{msg}</p>")
+	c.append(f"<p>{str(datetime.now()).split(' ')[1][:10]}> {msg}</p>")
 	WINDOW.evaluate_js('$(".console").scrollTop(999999);')
 
 def changegui(value:bool):
@@ -70,36 +69,41 @@ class Api:
 		print(msg)
 		return True
 	
+	def changetitle(self, title:str):
+		global WINDOW
+		WINDOW.title = title
+		return {'status': True}
+
 	def open_file_dialog(self):
 		global WINDOW
 		result = WINDOW.create_file_dialog(
 			OPEN_DIALOG, allow_multiple=True, file_types=('All files (*.*)',)
 		)
-		return {'files': result,}
+		return {'files': result}
 	
 	def get_categories(self):
 		global CATEGORIES
 		return {'categories': CATEGORIES}
 	
 	def download(self, weburl:str):
-		changegui(True)
-		changeconsole(f"downloading: {weburl}")
 		global WINDOW
 		global CMD_DOWNLOAD
+		changegui(True)
+		changeconsole(f"downloading: {weburl}")
 		weburl = ''.join(x for x in weburl if x.isdigit())
 		OUTDIR = WINDOW.create_file_dialog(FOLDER_DIALOG)
 		if OUTDIR == None:
 			changeconsole("selected folder is invalid. using default from config.")
 			OUTDIR = DEFAULT_OUTDIR
 		args = fr'"{weburl}" "{OUTDIR}"'
-		changeconsole(f"{str(datetime.now()).split(' ')[1]}> {args}\n\n")
+		changeconsole(args)
 		proc = Popen(fr"{CMD_DOWNLOAD} {args}", stdout=PIPE, text=True, bufsize=1)
 		while True:
 			line = proc.stdout.readline()
-			changeconsole(f"{str(datetime.now()).split(' ')[1]}> {line.strip()}\n\n")
+			changeconsole(line.strip())
 			if not line:
 				break
-		changeconsole(f"{str(datetime.now()).split(' ')[1]}> you can close the window now.")
+		changeconsole("you can close the window now.")
 		return abort({'status': 'success'})
 	
 	def upload(self, items):
@@ -170,7 +174,7 @@ class Api:
 				changeconsole(args)
 				while True:
 					line = proc.stdout.readline()
-					changeconsole(f"{line.strip()}")
+					changeconsole(line.strip())
 					if not line:
 						break
 				changeconsole(f"generated random name. {random_name}")
@@ -181,7 +185,7 @@ class Api:
 			changeconsole(args)
 			while True:
 				line = proc.stdout.readline()
-				changeconsole(f"{line.strip()}")
+				changeconsole(line.strip())
 				if not line:
 					break
 			changeconsole(f"!!uploaded!! {fname}")
@@ -192,5 +196,5 @@ class Api:
 
 if __name__ == '__main__':
 	api = Api()
-	WINDOW = create_window('xdxd_test', "views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+	WINDOW = create_window('upload', "views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 	start(http_port=8000)
