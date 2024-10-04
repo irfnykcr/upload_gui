@@ -17,21 +17,6 @@ VIDEO_EXT = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"]
 PHOTO_EXT = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
 TXT_EXT = [".txt"]
 
-r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
-try:
-	allof = r.json()
-except:
-	print("error while getting categories. probably invalid api key.")
-	exit()
-CATEGORIES = []
-for i in allof:
-	CATEGORIES.append(f"{i}/")
-	for k in allof[i]:
-		CATEGORIES.append(f"{i}/{k}/")
-		for l in allof[i][k]:
-			CATEGORIES.append(f"{i}/{k}/{l}/")
-
-
 width = 900
 height = 807
 settings = {
@@ -192,9 +177,20 @@ class Api:
 		changeconsole("you can close the window now.")
 		return abort({'status': 'success'})
 	
-
-
 if __name__ == '__main__':
-	api = Api()
-	WINDOW = create_window('upload', "views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+	try:
+		api = Api()
+		r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
+		allof = r.json()
+		CATEGORIES = []
+		for i in allof:
+			CATEGORIES.append(f"{i}/")
+			for k in allof[i]:
+				CATEGORIES.append(f"{i}/{k}/")
+				for l in allof[i][k]:
+					CATEGORIES.append(f"{i}/{k}/{l}/")
+		del allof
+		WINDOW = create_window('upload', "views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+	except:
+		WINDOW = create_window('upload', "views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
 	start(http_port=8000)
