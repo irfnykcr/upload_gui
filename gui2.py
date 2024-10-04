@@ -34,7 +34,7 @@ for i in allof:
 
 
 width = 900
-height = 720
+height = 807
 settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
@@ -48,13 +48,24 @@ def changeconsole(msg):
 	c = WINDOW.dom.get_element(".console")
 	c.append(f"<p>{msg}</p>")
 	WINDOW.evaluate_js('$(".console").scrollTop(999999);')
-class Api:
-	# def getRandomNumber(self):
-	# 	response = {
-	# 		'message': f"randint:{randint(1, 1000)}",
-	# 	}
-	# 	return response
 
+def changegui(value:bool):
+	global WINDOW
+	elements = [".header-upload", ".header-download", ".header-logo"]
+	for element in elements:
+		WINDOW.dom.get_element(element).style["disabled"] = value
+		if value:
+			WINDOW.dom.get_element(element).style["pointer-events"] = "none"
+			WINDOW.dom.get_element(element).style["cursor"] = "not-allowed"
+		else:
+			WINDOW.dom.get_element(element).style["pointer-events"] = "all"
+			WINDOW.dom.get_element(element).style["cursor"] = "pointer"
+
+def abort(return_msg:dict):
+	changegui(False)
+	return return_msg
+
+class Api:
 	def echostuff(self,*msg):
 		print(msg)
 		return True
@@ -68,11 +79,10 @@ class Api:
 	
 	def get_categories(self):
 		global CATEGORIES
-		global API_KEY
 		return {'categories': CATEGORIES}
 	
 	def download(self, weburl:str):
-		print("downloading..")
+		changegui(True)
 		changeconsole(f"downloading: {weburl}")
 		global WINDOW
 		global CMD_DOWNLOAD
@@ -90,7 +100,7 @@ class Api:
 			if not line:
 				break
 		changeconsole(f"{str(datetime.now()).split(' ')[1]}> you can close the window now.")
-		return {'status': 'success'}
+		return abort({'status': 'success'})
 	
 	def upload(self, items):
 		global ACCEPTED_CHR
@@ -99,6 +109,7 @@ class Api:
 		global TXT_EXT
 		global CATEGORIES
 		global WINDOW
+		changegui(True)
 		changeconsole(f"items: {items}")
 		FILE = items[0]
 
@@ -107,10 +118,10 @@ class Api:
 		for chr in about:
 			if chr not in accp:
 				changeconsole("fail1")
-				return {'status': 'fai,l'}
+				return abort({'status': 'fail'})
 		if len(about) > 500:
 			changeconsole("fail2")
-			return {'status': 'fail'}
+			return abort({'status': 'fail'})
 		
 		private = items[5]
 		private = 1 if private == "private" else 0
@@ -120,7 +131,7 @@ class Api:
 			category = category + "/"
 		if category not in CATEGORIES:
 			changeconsole("fail3")
-			return {'status': 'fail'}
+			return abort({'status': 'fail'})
 
 		autocheck = (len(FILE) > 1)
 		for ffile in FILE:
@@ -146,13 +157,12 @@ class Api:
 			for chr in fname:
 				if chr not in accp:
 					changeconsole("fail4")
-					return {'status': 'fail'}
+					return abort({'status': 'fail'})
 			len_fname = len(fname)
 			if (len_fname < 2) or (len_fname > 100):
 				changeconsole("fail5")
-				return {'status': 'fail'}
-			
-			#generate thumbnail
+				return abort({'status': 'fail'})
+
 			if (ftype == "video") or (ftype == "image"):
 				random_name = fname + uuid4().hex[:5]
 				args = fr'"{ffile}" "{random_name}" "{ftype}"'
@@ -165,8 +175,7 @@ class Api:
 						break
 				changeconsole(f"generated random name. {random_name}")
 			changeconsole("thumbnail generated. uploading file..")
-
-			#uploading file		
+	
 			args = fr'"{ffile}" "{fname}" "{about}" "{category}" "{ftype}" "{private}"'
 			proc = Popen(fr"{CMD_UPLOAD} {args}", stdout=PIPE, text=True, bufsize=1)
 			changeconsole(args)
@@ -177,12 +186,11 @@ class Api:
 					break
 			changeconsole(f"!!uploaded!! {fname}")
 		changeconsole("you can close the window now.")
-		return {'status': 'success'}
+		return abort({'status': 'success'})
 	
 
 
 if __name__ == '__main__':
 	api = Api()
 	WINDOW = create_window('xdxd_test', "views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
-	# window.confirm_close = True
 	start(http_port=8000)

@@ -1,10 +1,7 @@
 <body>
     <form class="upload-form" enctype="multipart/form-data" novalidate>
-		<!-- <div class="uk-flex uk-flex-center"> -->
 		<div class="uk-flex uk-margin-left">
-			<!-- <div class="uk-flex uk-flex-center uk-flex-column"> -->
 			<div class="uk-flex uk-flex-column" style="width:250px;">
-				<p class="letter" style="color:white;text-align: center;"></p>
 				<h1 class="uk-margin-top">Upload Video</h1>
 				<div>
 					<label for="filetype">filetype:</label><br>
@@ -16,7 +13,6 @@
 				<div>
 					<label for="file">file:</label><br>
 					<div uk-form-custom="target: true">
-						<!-- <input type="file" class="file vid" aria-label="Custom controls" accept=".mp4,.mov,.avi,.wmv,.mkv,.webm,.flv,.ts" required> -->
 						<input type="file" class="file vid" aria-label="Custom controls" required multiple="multiple" onclick="opendialog(event);">
 						<input class="uk-input uk-form-width-medium vid2" type="text" placeholder="Select or drop file" aria-label="Custom controls" disabled multiple="multiple" onclick="opendialog(event);">
 					</div>
@@ -32,7 +28,7 @@
 				<div>
 					<label for="category">category:</label>
 					<select class="category uk-select" required>
-						<!-- <option value="{{$val}}">{{$val}}</option> -->
+
 					</select>
 				</div>
 				<div style="margin-top:10px;">
@@ -43,7 +39,7 @@
 				<div class="uk-margin-top">
 					<button class="bbutton uk-button" type="submit">Upload</button>
 				</div>
-				<p class="result"></p>
+				<p class="letter" style="color:white;text-align: center;"></p>
 				<script>
 					window.left = false;
 					$(window).bind("beforeunload",function(event) {
@@ -158,7 +154,7 @@
 		function namechange(){
 			let nameee = document.querySelector('.name')
 			if (in_array((nameee.value).split(""), accnamechrs) == -1){
-				uploadForm.querySelector('.result').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
+				uploadForm.querySelector('.letter').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
 			}
 		};
 
@@ -172,19 +168,19 @@
 			// 	var ext = "."+window.files[0].name.split('.').pop().toLowerCase();
 			// }
 			if (!window.files.length) {
-				uploadForm.querySelector('.result').innerHTML = 'Please select a file!';
+				uploadForm.querySelector('.letter').innerHTML = 'Please select a file!';
 			}else if (ctg.value == ""){
-				uploadForm.querySelector('.result').innerHTML = 'Please select a category!';
+				uploadForm.querySelector('.letter').innerHTML = 'Please select a category!';
 			} else if (name1.value.length < 2){
-				uploadForm.querySelector('.result').innerHTML = 'name is too short.';
+				uploadForm.querySelector('.letter').innerHTML = 'name is too short.';
 			}else if (in_array((name1.value).split(""), accnamechrs) == -1){
-				uploadForm.querySelector('.result').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
+				uploadForm.querySelector('.letter').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
 			} else if (ftype == null){
-				uploadForm.querySelector('.result').innerHTML = 'select the filetype';
+				uploadForm.querySelector('.letter').innerHTML = 'select the filetype';
 			} else if (ftype == null){
-				uploadForm.querySelector('.result').innerHTML = 'select the visibility';
+				uploadForm.querySelector('.letter').innerHTML = 'select the visibility';
 			} else {
-				uploadForm.querySelector('.result').innerHTML = 'uploading..';
+				uploadForm.querySelector('.letter').innerHTML = 'uploading..';
 				window.left = true;
 				// reader = new FileReader();
 				// file = document.querySelector('.vid').files[0];
@@ -223,11 +219,11 @@
 				function(response){
 					// echostuff("in");
 					if (response["status"] == "success"){
-						uploadForm.querySelector('.result').innerHTML = 'upload successful!';
+						uploadForm.querySelector('.letter').innerHTML = 'upload successful!';
 						succesful.innerHTML = "upload successful!";
 						window.left = false;
 					} else {
-						uploadForm.querySelector('.result').innerHTML = 'upload failed!';
+						uploadForm.querySelector('.letter').innerHTML = 'upload failed!';
 						succesful.innerHTML = "upload failed!";
 						window.left = false;
 					}
