@@ -1,44 +1,43 @@
-<body>
-	<form class="download-form" enctype="multipart/form-data" novalidate>
-		<div class="uk-flex uk-margin-left">
-			<div class="uk-flex uk-flex-column">
-				<div style="width:250px;">
-					<label for="weburl">webid or url</label>
-					<input type="text" class="weburl uk-input" required/>
-				</div>
-				<div class="uk-margin-top">
-					<button class="bbutton uk-button" type="submit">Download</button>
-				</div>
-				<div>
-					<p class="result"></p>
-				</div>
-			</div>
 
-			<div class="uk-flex uk-margin-left">
-				<code class="console" style="overflow: scroll;height:550px;width:550px;">
-					<p>console area</p>
-				</code>
+<form class="download-form" enctype="multipart/form-data" novalidate>
+	<div class="uk-flex uk-margin-left">
+		<div class="uk-flex uk-flex-column">
+			<div style="width:250px;">
+				<label for="weburl">webid or url</label>
+				<input type="text" class="weburl uk-input" required/>
+			</div>
+			<div class="uk-margin-top">
+				<button class="bbutton uk-button" type="submit">Download</button>
+			</div>
+			<div>
+				<p class="result"></p>
 			</div>
 		</div>
-	</form>
-	
-	<script>
-		const download_form = document.querySelector(".download-form");
-		download_form.addEventListener("submit", startdownload);
-		const result = document.querySelector(".result");
-		const bbutton = document.querySelector(".bbutton");
-		const weburl = document.querySelector(".weburl");
 
-		function startdownload(e) {
-			e.preventDefault();
-			var val = weburl.value;
-			bbutton.disabled = true;
-			weburl.disabled = true;
-			window.pywebview.api.download(val).then(
-				function(response){
-					result.innerHTML = response["status"];
-				}
-			);
-		} 
-	</script>
-</body>
+		<div class="uk-flex uk-margin-left">
+			<code class="console" style="overflow: scroll;height:550px;width:550px;">
+				<p>console area</p>
+			</code>
+		</div>
+	</div>
+</form>
+
+<script>
+	const download_form = document.querySelector(".download-form");
+	download_form.addEventListener("submit", startdownload);
+	const result = document.querySelector(".result");
+	const bbutton = document.querySelector(".bbutton");
+	const weburl = document.querySelector(".weburl");
+
+	function startdownload(e) {
+		e.preventDefault();
+		var val = weburl.value;
+		bbutton.disabled = true;
+		weburl.disabled = true;
+		window.pywebview.api.download(val).then(
+			function(response){
+				result.innerHTML = response["status"];
+			}
+		);
+	} 
+</script>

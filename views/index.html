@@ -2,23 +2,43 @@
 <div data-include="/stuff/header"></div>
 <div class="current-page"></div>
 <div data-include="/stuff/footer"></div>
+<style>
+body {
+	visibility: hidden;
+	transition:visibility 0.175s linear,opacity 0.175s linear;
+	opacity:0;
+}
+</style>
 
 
 <script>
-window.addEventListener('pywebviewready', function() {
-	window.pywebview.api.echostuff('ready');
-	window.pywebview.api.changetitle(i);
-})
-const urlParams = new URLSearchParams(window.location.search);
-const i = urlParams.get('i');
 
-const current_page = $('.current-page');
-current_page.html('<div class="current-page" data-include="'+i+'"></div>');
-const includes = $('[data-include]');
-$(function () {
-	$.each(includes, function () {
+window.addEventListener('pywebviewready', async function() {
+	await start();
+});
+
+async function loadpages(){
+	const _urlParams = new URLSearchParams(window.location.search);
+	const _i = _urlParams.get('i');
+	const _current_page = $('.current-page');
+	_current_page.html('<div class="current-page" data-include="'+_i+'"></div>');
+	const _includes = $('[data-include]');
+
+	$.each(_includes, function () {
 		var file = $(this).data('include') + '.html';
 		$(this).load(file);
 	});
-});
+}
+
+async function makevisible(){
+	var _body = document.getElementsByTagName("body")[0];
+	_body.style.visibility = "visible";
+	_body.style.opacity = "1";
+}
+
+async function start(){
+	await loadpages();
+	await makevisible();
+};
+
 </script>

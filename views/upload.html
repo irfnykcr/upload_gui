@@ -1,234 +1,233 @@
-<body>
-    <form class="upload-form" enctype="multipart/form-data" novalidate>
-		<div class="uk-flex uk-margin-left">
-			<div class="uk-flex uk-flex-column" style="width:250px;">
-				<h1 class="uk-margin-top">Upload Video</h1>
-				<div>
-					<label for="filetype">filetype:</label><br>
-					<label><input class="filetype-video uk-radio" type="radio" name="ftype" checked/>video</label>
-					<label><input class="filetype-photo uk-radio" type="radio" name="ftype"/>photo</label>
-					<label><input class="filetype-text uk-radio" type="radio" name="ftype"/>text</label>
-					<label><input class="filetype-other uk-radio" type="radio" name="ftype"/>other</label>
-				</div>
-				<div>
-					<label for="file">file:</label><br>
-					<div uk-form-custom="target: true">
-						<input type="file" class="file vid" aria-label="Custom controls" required multiple="multiple" onclick="opendialog(event);">
-						<input class="uk-input uk-form-width-medium vid2" type="text" placeholder="Select or drop file" aria-label="Custom controls" disabled multiple="multiple" onclick="opendialog(event);">
-					</div>
-				</div>
-				
 
-				<div>
-					<label for="name">name:</label> <input type="text" class="name uk-input" onkeypress="namechange();" onpaste="namechange();"oninput="namechange();" required/>
-				</div>
-				<div>
-					<label for="about">about:</label><br> <textarea type="text" class="about uk-textarea"></textarea>
-				</div>
-				<div>
-					<label for="category">category:</label>
-					<select class="category uk-select" required>
-
-					</select>
-				</div>
-				<div style="margin-top:10px;">
-					<label for="visibility">visibility:</label>
-					<label><input class="visibility-private uk-radio" type="radio" name="visibility"/>private</label>
-					<label><input class="visibility-unlisted uk-radio" type="radio" name="visibility" checked/>unlisted</label>
-				</div>
-				<div class="uk-margin-top">
-					<button class="bbutton uk-button" type="submit">Upload</button>
-				</div>
-				<p class="letter" style="color:white;text-align: center;"></p>
-				<script>
-					window.left = false;
-					$(window).bind("beforeunload",function(event) {
-						if(window.left) {return "Are you sure you want to leave?"};
-					});
-				</script>
+<form class="upload-form" enctype="multipart/form-data" novalidate>
+	<div class="uk-flex uk-margin-left">
+		<div class="uk-flex uk-flex-column" style="width:250px;">
+			<h1 class="uk-margin-top">Upload Video</h1>
+			<div>
+				<label for="filetype">filetype:</label><br>
+				<label><input class="filetype-video uk-radio" type="radio" name="ftype" checked/>video</label>
+				<label><input class="filetype-photo uk-radio" type="radio" name="ftype"/>photo</label>
+				<label><input class="filetype-text uk-radio" type="radio" name="ftype"/>text</label>
+				<label><input class="filetype-other uk-radio" type="radio" name="ftype"/>other</label>
 			</div>
-
-			<div class="uk-flex uk-margin-left">
-				<code class="console" style="overflow: scroll;height:550px;width:550px;">
-					<p>console area</p>
-				</code>
+			<div>
+				<label for="file">file:</label><br>
+				<div uk-form-custom="target: true">
+					<input type="file" class="file vid" aria-label="Custom controls" required multiple="multiple" onclick="opendialog(event);">
+					<input class="uk-input uk-form-width-medium vid2" type="text" placeholder="Select or drop file" aria-label="Custom controls" disabled multiple="multiple" onclick="opendialog(event);">
+				</div>
 			</div>
+			
+
+			<div>
+				<label for="name">name:</label> <input type="text" class="name uk-input" onkeypress="namechange();" onpaste="namechange();"oninput="namechange();" required/>
+			</div>
+			<div>
+				<label for="about">about:</label><br> <textarea type="text" class="about uk-textarea"></textarea>
+			</div>
+			<div>
+				<label for="category">category:</label>
+				<select class="category uk-select" required>
+
+				</select>
+			</div>
+			<div style="margin-top:10px;">
+				<label for="visibility">visibility:</label>
+				<label><input class="visibility-private uk-radio" type="radio" name="visibility"/>private</label>
+				<label><input class="visibility-unlisted uk-radio" type="radio" name="visibility" checked/>unlisted</label>
+			</div>
+			<div class="uk-margin-top">
+				<button class="bbutton uk-button" type="submit">Upload</button>
+			</div>
+			<p class="letter" style="color:white;text-align: center;"></p>
+			<script>
+				window.left = false;
+				$(window).bind("beforeunload",function(event) {
+					if(window.left) {return "Are you sure you want to leave?"};
+				});
+			</script>
 		</div>
-    </form>
+
+		<div class="uk-flex uk-margin-left">
+			<code class="console" style="overflow: scroll;height:550px;width:550px;">
+				<p>console area</p>
+			</code>
+		</div>
+	</div>
+</form>
+
+<script>
+	const video_ext = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"];
+	const photo_ext = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+	const txt_ext = [".txt"];
+	const accnamechrs = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+[]{} ".split("");
+	const uploadForm = document.querySelector('.upload-form');
+	const console = document.querySelector('.console');
+	const filesInput = uploadForm.querySelector('.vid');
+	const nameclass = uploadForm.querySelector('.name');
+	const succesful = document.querySelector('.letter');
 	
-	<script>
-		const video_ext = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"];
-		const photo_ext = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-		const txt_ext = [".txt"];
-		const accnamechrs = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+[]{} ".split("");
-		const uploadForm = document.querySelector('.upload-form');
-		const console = document.querySelector('.console');
-		const filesInput = uploadForm.querySelector('.vid');
-		const nameclass = uploadForm.querySelector('.name');
-		const succesful = document.querySelector('.letter');
-		
-		window.pywebview.api.get_categories().then(
+	window.pywebview.api.get_categories().then(
+		function(response){
+			response = response["categories"];
+			var ctg = document.querySelector('.category');
+			for (var i=0, len=response.length;i<len;i++) {
+				var opt = document.createElement('option');
+				opt.value = response[i];
+				opt.innerHTML = response[i];
+				ctg.appendChild(opt);
+			}
+		}
+	);
+
+	uploadForm.addEventListener("submit", start_upload); 
+	function opendialog(event){
+		event.preventDefault();
+		window.pywebview.api.open_file_dialog().then(
 			function(response){
-				response = response["categories"];
-				var ctg = document.querySelector('.category');
-				for (var i=0, len=response.length;i<len;i++) {
-					var opt = document.createElement('option');
-					opt.value = response[i];
-					opt.innerHTML = response[i];
-					ctg.appendChild(opt);
+				if (response != null){
+					// filesInput.disabled = true;
+					r = response["files"];
+					window.files = r;
+					if (r.length > 1){
+						document.querySelector('.vid2').value = "multiple selected";
+					} else {
+						document.querySelector('.vid2').value = r;
+					}
+					
+					// echostuff(r);
+					fileschanged(r, r[0].split("\\").at(-1));
 				}
 			}
 		);
-
-		uploadForm.addEventListener("submit", start_upload); 
-		function opendialog(event){
-			event.preventDefault();
-			window.pywebview.api.open_file_dialog().then(
-				function(response){
-					if (response != null){
-						// filesInput.disabled = true;
-						r = response["files"];
-						window.files = r;
-						if (r.length > 1){
-							document.querySelector('.vid2').value = "multiple selected";
-						} else {
-							document.querySelector('.vid2').value = r;
-						}
-						
-						// echostuff(r);
-						fileschanged(r, r[0].split("\\").at(-1));
-					}
-				}
-			);
-		}
-		function echostuff(message){
-			window.pywebview.api.echostuff(message);
-		}
-		function in_array(name, thelist){
-			var found = 0;
-			if (typeof(name) == "object"){
-				for (var i=0, len=name.length;i<len;i++) {
-					if (in_array(name[i], thelist) == -1){
-						return -1;
-					}
-				}
-				return 1
-			}else{
-				for (var i=0, len=thelist.length;i<len;i++) {
-					if (thelist[i] == name) return i;
-					found++;
+	}
+	function echostuff(message){
+		window.pywebview.api.echostuff(message);
+	}
+	function in_array(name, thelist){
+		var found = 0;
+		if (typeof(name) == "object"){
+			for (var i=0, len=name.length;i<len;i++) {
+				if (in_array(name[i], thelist) == -1){
+					return -1;
 				}
 			}
-			return -1;
-		}
-
-		function fileschanged(f_files,fname){
-			succesful.innerHTML = "";
-			// f_files = filesInput.files;
-			// var fname = f_files[0].name
-			// echostuff((f_files,fname));
-			ext = "."+fname.split('.').pop().toLowerCase();
-			if (in_array(ext, video_ext) != -1){
-				document.getElementsByClassName("filetype-video")[0].checked = true;
-			} else if (in_array(ext, photo_ext) != -1){
-				document.getElementsByClassName("filetype-photo")[0].checked = true;
-			} else if (in_array(ext, txt_ext) != -1){
-				document.getElementsByClassName("filetype-text")[0].checked = true;
-			} else {
-				document.getElementsByClassName("filetype-other")[0].checked = true;
-			}
-			// echostuff(f_files.length + "files selected.");
-			if (f_files.length > 1){
-				document.querySelector('.name').value = "multiple selected";
-				document.querySelector('.name').readOnly = true;
-			} else {
-				document.querySelector('.name').value = fname;
+			return 1
+		}else{
+			for (var i=0, len=thelist.length;i<len;i++) {
+				if (thelist[i] == name) return i;
+				found++;
 			}
 		}
-		if (filesInput != null){
-			filesInput.onchange = () => {
-				fileschanged();
-			}
+		return -1;
+	}
+
+	function fileschanged(f_files,fname){
+		succesful.innerHTML = "";
+		// f_files = filesInput.files;
+		// var fname = f_files[0].name
+		// echostuff((f_files,fname));
+		ext = "."+fname.split('.').pop().toLowerCase();
+		if (in_array(ext, video_ext) != -1){
+			document.getElementsByClassName("filetype-video")[0].checked = true;
+		} else if (in_array(ext, photo_ext) != -1){
+			document.getElementsByClassName("filetype-photo")[0].checked = true;
+		} else if (in_array(ext, txt_ext) != -1){
+			document.getElementsByClassName("filetype-text")[0].checked = true;
+		} else {
+			document.getElementsByClassName("filetype-other")[0].checked = true;
 		}
-
-		function namechange(){
-			let nameee = document.querySelector('.name')
-			if (in_array((nameee.value).split(""), accnamechrs) == -1){
-				uploadForm.querySelector('.letter').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
-			}
-		};
-
-		function start_upload(event) {
-			event.preventDefault();
-			var name1 = document.querySelector('.name');
-			var ftype = document.querySelector('input[name="ftype"]:checked');
-			var visibility = document.querySelector('input[name="visibility"]:checked');
-			ctg = document.querySelector('.category');
-			// if (window.files.length) {
-			// 	var ext = "."+window.files[0].name.split('.').pop().toLowerCase();
-			// }
-			if (!window.files.length) {
-				uploadForm.querySelector('.letter').innerHTML = 'Please select a file!';
-			}else if (ctg.value == ""){
-				uploadForm.querySelector('.letter').innerHTML = 'Please select a category!';
-			} else if (name1.value.length < 2){
-				uploadForm.querySelector('.letter').innerHTML = 'name is too short.';
-			}else if (in_array((name1.value).split(""), accnamechrs) == -1){
-				uploadForm.querySelector('.letter').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
-			} else if (ftype == null){
-				uploadForm.querySelector('.letter').innerHTML = 'select the filetype';
-			} else if (ftype == null){
-				uploadForm.querySelector('.letter').innerHTML = 'select the visibility';
-			} else {
-				uploadForm.querySelector('.letter').innerHTML = 'uploading..';
-				window.left = true;
-				// reader = new FileReader();
-				// file = document.querySelector('.vid').files[0];
-				window.f_name = $('.name')[0].value;
-				window.f_about = $('.about')[0].value;
-				window.f_category = $('.category')[0].value;
-				ftype = ftype.classList[0];
-				window.f_ftype = ftype.replace("filetype-", "");
-				visibility = visibility.classList[0];
-				window.f_visibility = visibility.replace("visibility-", "");
-				// echostuff("starting..")
-				upload_file();
-				// echostuff("started!")
-				filesInput.disabled = true;
-				document.querySelector('.bbutton').disabled = true;
-				document.querySelector('.vid').disabled = true;
-				document.querySelector('.about').readOnly = true;
-				document.querySelector('.name').readOnly = true;
-				document.querySelector('.category').disabled = true;
-				document.querySelector('.filetype-video').disabled = true;
-				document.querySelector('.filetype-photo').disabled = true;
-				document.querySelector('.filetype-text').disabled = true;
-				document.querySelector('.filetype-other').disabled = true;
-				document.querySelector('.visibility-private').disabled = true;
-				document.querySelector('.visibility-unlisted').disabled = true;
-			}
+		// echostuff(f_files.length + "files selected.");
+		if (f_files.length > 1){
+			document.querySelector('.name').value = "multiple selected";
+			document.querySelector('.name').readOnly = true;
+		} else {
+			document.querySelector('.name').value = fname;
 		}
+	}
+	if (filesInput != null){
+		filesInput.onchange = () => {
+			fileschanged();
+		}
+	}
 
-		function upload_file(){
-			if (window.files.length > 1){
-				window.f_name = 0;
-				window.f_ftype = 0;
-			}
-			// echostuff("lenstuff")
-			window.pywebview.api.upload([window.files, window.f_name, window.f_about, window.f_category, window.f_ftype, window.f_visibility]).then(
-				function(response){
-					// echostuff("in");
-					if (response["status"] == "success"){
-						uploadForm.querySelector('.letter').innerHTML = 'upload successful!';
-						succesful.innerHTML = "upload successful!";
-						window.left = false;
-					} else {
-						uploadForm.querySelector('.letter').innerHTML = 'upload failed!';
-						succesful.innerHTML = "upload failed!";
-						window.left = false;
-					}
+	function namechange(){
+		let nameee = document.querySelector('.name')
+		if (in_array((nameee.value).split(""), accnamechrs) == -1){
+			uploadForm.querySelector('.letter').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
+		}
+	};
+
+	function start_upload(event) {
+		event.preventDefault();
+		var name1 = document.querySelector('.name');
+		var ftype = document.querySelector('input[name="ftype"]:checked');
+		var visibility = document.querySelector('input[name="visibility"]:checked');
+		ctg = document.querySelector('.category');
+		// if (window.files.length) {
+		// 	var ext = "."+window.files[0].name.split('.').pop().toLowerCase();
+		// }
+		if (!window.files.length) {
+			uploadForm.querySelector('.letter').innerHTML = 'Please select a file!';
+		}else if (ctg.value == ""){
+			uploadForm.querySelector('.letter').innerHTML = 'Please select a category!';
+		} else if (name1.value.length < 2){
+			uploadForm.querySelector('.letter').innerHTML = 'name is too short.';
+		}else if (in_array((name1.value).split(""), accnamechrs) == -1){
+			uploadForm.querySelector('.letter').innerHTML = 'accaptable characters: [azAZ09-,._()!+-[]{} ]';
+		} else if (ftype == null){
+			uploadForm.querySelector('.letter').innerHTML = 'select the filetype';
+		} else if (ftype == null){
+			uploadForm.querySelector('.letter').innerHTML = 'select the visibility';
+		} else {
+			uploadForm.querySelector('.letter').innerHTML = 'uploading..';
+			window.left = true;
+			// reader = new FileReader();
+			// file = document.querySelector('.vid').files[0];
+			window.f_name = $('.name')[0].value;
+			window.f_about = $('.about')[0].value;
+			window.f_category = $('.category')[0].value;
+			ftype = ftype.classList[0];
+			window.f_ftype = ftype.replace("filetype-", "");
+			visibility = visibility.classList[0];
+			window.f_visibility = visibility.replace("visibility-", "");
+			// echostuff("starting..")
+			upload_file();
+			// echostuff("started!")
+			filesInput.disabled = true;
+			document.querySelector('.bbutton').disabled = true;
+			document.querySelector('.vid').disabled = true;
+			document.querySelector('.about').readOnly = true;
+			document.querySelector('.name').readOnly = true;
+			document.querySelector('.category').disabled = true;
+			document.querySelector('.filetype-video').disabled = true;
+			document.querySelector('.filetype-photo').disabled = true;
+			document.querySelector('.filetype-text').disabled = true;
+			document.querySelector('.filetype-other').disabled = true;
+			document.querySelector('.visibility-private').disabled = true;
+			document.querySelector('.visibility-unlisted').disabled = true;
+		}
+	}
+
+	function upload_file(){
+		if (window.files.length > 1){
+			window.f_name = 0;
+			window.f_ftype = 0;
+		}
+		// echostuff("lenstuff")
+		window.pywebview.api.upload([window.files, window.f_name, window.f_about, window.f_category, window.f_ftype, window.f_visibility]).then(
+			function(response){
+				// echostuff("in");
+				if (response["status"] == "success"){
+					uploadForm.querySelector('.letter').innerHTML = 'upload successful!';
+					succesful.innerHTML = "upload successful!";
+					window.left = false;
+				} else {
+					uploadForm.querySelector('.letter').innerHTML = 'upload failed!';
+					succesful.innerHTML = "upload failed!";
+					window.left = false;
 				}
-			);
-		}
-	</script>
-</body>
+			}
+		);
+	}
+</script>

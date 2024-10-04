@@ -17,6 +17,10 @@ VIDEO_EXT = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"]
 PHOTO_EXT = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
 TXT_EXT = [".txt"]
 
+CATEGORIES = []
+CATEGORIES_LIST = []
+FILES_LIST = []
+
 width = 900
 height = 807
 settings = {
@@ -68,8 +72,35 @@ class Api:
 	
 	def get_categories(self):
 		global CATEGORIES
+		if len(CATEGORIES) == 0:
+			self.get_categories_list()
 		return {'categories': CATEGORIES}
-	
+	def get_categories_list(self):
+		global CATEGORIES_LIST
+		global CATEGORIES
+		if len(CATEGORIES_LIST) == 0:
+			r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
+			CATEGORIES_LIST = r.json()
+			CATEGORIES = []
+			for i in CATEGORIES_LIST:
+				CATEGORIES.append(f"{i}/")
+				for k in CATEGORIES_LIST[i]:
+					CATEGORIES.append(f"{i}/{k}/")
+					for l in CATEGORIES_LIST[i][k]:
+						CATEGORIES.append(f"{i}/{k}/{l}/")
+		return {'categories': CATEGORIES_LIST}
+
+	def get_files(self, category:str):
+		global FILES_LIST
+		if FILES_LIST == []:
+			r:bytes = post("https://api.turkuazz.online/v1/files/getfiles", headers={"api-key":API_KEY}).content
+			FILES_LIST = eval(r.decode("utf-8"))
+		_temp_ctg = []
+		for i in FILES_LIST:
+			if i[2] == category:
+				_temp_ctg.append(i)
+		return {'files': _temp_ctg}
+
 	def download(self, weburl:str):
 		global WINDOW
 		global CMD_DOWNLOAD
@@ -180,16 +211,6 @@ class Api:
 if __name__ == '__main__':
 	try:
 		api = Api()
-		r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
-		allof = r.json()
-		CATEGORIES = []
-		for i in allof:
-			CATEGORIES.append(f"{i}/")
-			for k in allof[i]:
-				CATEGORIES.append(f"{i}/{k}/")
-				for l in allof[i][k]:
-					CATEGORIES.append(f"{i}/{k}/{l}/")
-		del allof
 		WINDOW = create_window('upload', "views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 	except:
 		WINDOW = create_window('upload', "views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
