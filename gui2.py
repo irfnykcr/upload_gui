@@ -85,6 +85,8 @@ class Api:
 		if FILES_LIST == []:
 			r:bytes = post("https://api.turkuazz.online/v1/files/getfiles", headers={"api-key":API_KEY}).content
 			FILES_LIST = eval(r.decode("utf-8"))
+		if category[-1] != "/":
+			category = category + "/"
 		_temp_ctg = []
 		for i in FILES_LIST:
 			if i[2] == category:
