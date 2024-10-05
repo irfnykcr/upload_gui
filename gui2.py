@@ -4,8 +4,11 @@ from subprocess import PIPE, Popen
 from uuid import uuid4
 from requests import post
 from webview import OPEN_DIALOG, create_window, start, settings, FOLDER_DIALOG
+from os import getcwd
 
-with open("./config/config.json", "r") as f:
+CURRENT_PATH = getcwd()
+print(CURRENT_PATH)
+with open(fr"{CURRENT_PATH}/config/config.json", "r") as f:
 	j = load(f)
 	CMD_UPLOAD = fr"{j['cmd_upload']}"
 	CMD_DOWNLOAD = fr"{j['cmd_download']}"
@@ -72,22 +75,9 @@ class Api:
 	
 	def get_categories(self):
 		global CATEGORIES
-		if len(CATEGORIES) == 0:
-			self.get_categories_list()
 		return {'categories': CATEGORIES}
 	def get_categories_list(self):
 		global CATEGORIES_LIST
-		global CATEGORIES
-		if len(CATEGORIES_LIST) == 0:
-			r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
-			CATEGORIES_LIST = r.json()
-			CATEGORIES = []
-			for i in CATEGORIES_LIST:
-				CATEGORIES.append(f"{i}/")
-				for k in CATEGORIES_LIST[i]:
-					CATEGORIES.append(f"{i}/{k}/")
-					for l in CATEGORIES_LIST[i][k]:
-						CATEGORIES.append(f"{i}/{k}/{l}/")
 		return {'categories': CATEGORIES_LIST}
 
 	def get_files(self, category:str):
@@ -210,8 +200,17 @@ class Api:
 	
 if __name__ == '__main__':
 	try:
+		r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
+		CATEGORIES_LIST = r.json()
+		CATEGORIES = []
+		for i in CATEGORIES_LIST:
+			CATEGORIES.append(f"{i}/")
+			for k in CATEGORIES_LIST[i]:
+				CATEGORIES.append(f"{i}/{k}/")
+				for l in CATEGORIES_LIST[i][k]:
+					CATEGORIES.append(f"{i}/{k}/{l}/")
 		api = Api()
-		WINDOW = create_window('upload', "views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 	except:
-		WINDOW = create_window('upload', "views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
+		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
 	start(http_port=8000)
