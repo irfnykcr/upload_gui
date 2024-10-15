@@ -14,6 +14,7 @@ with open(fr"{CURRENT_PATH}/config/config.json", "r") as f:
 	CMD_DOWNLOAD = fr"{j['cmd_download']}"
 	CMD_GEN = fr"{j['cmd_gen']}"
 	API_KEY = j['api_key']
+	PORT = j['port']
 	DEFAULT_OUTDIR = j['outdir']
 ACCEPTED_CHR = list("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+-[]{} ")
 VIDEO_EXT = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"]
@@ -38,11 +39,14 @@ def changeconsole(msg):
 	global WINDOW
 	c = WINDOW.dom.get_element(".console")
 	c.append(f"<p>{str(datetime.now()).split(' ')[1][:10]}> {msg}</p>")
-	WINDOW.evaluate_js('$(".console").scrollTop(999999);')
+	c = WINDOW.dom.get_element(".autoscroll") #checkbox
+	if WINDOW.evaluate_js('document.querySelector(".autoscroll").checked'):
+		WINDOW.evaluate_js('$(".console").scrollTop(999999);')
+	# WINDOW.evaluate_js('$(".console").scrollTop(999999);')
 
 def changegui(value:bool):
 	global WINDOW
-	elements = [".header-upload", ".header-download", ".header-logo"]
+	elements = [".header-upload", ".header-download", ".header-logo", ".header-files"]
 	for element in elements:
 		WINDOW.dom.get_element(element).style["disabled"] = value
 		if value:
@@ -215,4 +219,4 @@ if __name__ == '__main__':
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 	except:
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
-	start(http_port=8000)
+	start(http_port=PORT)

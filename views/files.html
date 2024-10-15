@@ -73,7 +73,7 @@ function hideImage(elemId, imgSrc) {
 
 
 function copyTextToClipboard(text) {
-	navigator.clipboard.writeText('${file[0]}').then(function() {
+	navigator.clipboard.writeText(text).then(function() {
 		echostuff('copied text: ' + text);
 	}, function(err) {
 		console.error('could not copy: ' + text, err);
