@@ -16,6 +16,7 @@ with open(fr"{CURRENT_PATH}/config/config.json", "r") as f:
 	API_KEY = j['api_key']
 	PORT = j['port']
 	DEFAULT_OUTDIR = j['outdir']
+	VLC_PATH = j['vlc']
 ACCEPTED_CHR = list("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+-[]{} ")
 VIDEO_EXT = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"]
 PHOTO_EXT = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
@@ -61,10 +62,18 @@ def abort(return_msg:dict):
 	return return_msg
 
 class Api:
+	
 	def echostuff(self,*msg):
 		print(msg)
 		return True
-	
+	def openvlc(self, url:str):
+		global VLC_PATH
+		# open vlc with cmd
+		url = "https://cdn.turkuazz.online/video?vid=" + url
+		print("opening", url)
+		proc = Popen(fr'"{VLC_PATH}" {url}')
+		print("vlc opened")
+		return True
 	def changetitle(self, title:str):
 		global WINDOW
 		WINDOW.title = title
@@ -80,10 +89,19 @@ class Api:
 	def get_categories(self):
 		global CATEGORIES
 		return {'categories': CATEGORIES}
-	def get_categories_list(self):
+	def get_categories_list(self, catg:str=""):
 		global CATEGORIES_LIST
-		return {'categories': CATEGORIES_LIST}
-
+		if catg == "":
+			return {'categories': CATEGORIES_LIST}
+		if catg[-1] == "/":
+			catg = catg[:-1]
+		catg = catg.split("/")
+		if len(catg) == 1:
+			return {'categories': [i for i in CATEGORIES_LIST[catg[0]]]}
+		elif len(catg) == 2:
+			return {'categories': [i for i in CATEGORIES_LIST[catg[0]][catg[1]]]}
+		else:
+			return {'categories': []}
 	def get_files(self, category:str):
 		global FILES_LIST
 		if FILES_LIST == []:

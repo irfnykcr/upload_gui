@@ -1,11 +1,12 @@
 {
 	"api_key": "someapikey",
-	"max_threads": 10,
+	"max_threads": 2,
 	"max_retry": 10,
 	"port": 8000,
 	"tmp_dir": "./outdir/tmpdir",
 	"outdir": "./outdir",
 	"cmd_gen": "python -u ./py_files/generate_thumb.py",
 	"cmd_upload": "python -u ./py_files/upload.py",
-	"cmd_download": "python -u ./py_files/download.py"
+	"cmd_download": "python -u ./py_files/download.py",
+	"vlc": "C:/Program Files/VLC/vlc.exe"
 }
