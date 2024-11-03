@@ -8,5 +8,7 @@
 	"cmd_gen": "python -u ./py_files/generate_thumb.py",
 	"cmd_upload": "python -u ./py_files/upload.py",
 	"cmd_download": "python -u ./py_files/download.py",
-	"vlc": "C:/Program Files/VLC/vlc.exe"
+	"vlc": "C:/Program Files/VLC/vlc.exe",
+	"vlc_port": 8092,
+	"vlc_http_pass": "w1Vam0l3chtgrRWP"
 }

@@ -1,6 +1,8 @@
 from datetime import datetime
 from json import load
 from subprocess import PIPE, Popen
+from threading import Thread
+from time import sleep, time
 from uuid import uuid4
 from requests import post
 from webview import OPEN_DIALOG, create_window, start, settings, FOLDER_DIALOG
@@ -17,6 +19,8 @@ with open(fr"{CURRENT_PATH}/config/config.json", "r") as f:
 	PORT = j['port']
 	DEFAULT_OUTDIR = j['outdir']
 	VLC_PATH = j['vlc']
+	VLC_PORT = j['vlc_port']
+	VLC_HTTP_PASS = j['vlc_http_pass']
 ACCEPTED_CHR = list("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+-[]{} ")
 VIDEO_EXT = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"]
 PHOTO_EXT = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
@@ -25,7 +29,7 @@ TXT_EXT = [".txt"]
 CATEGORIES = []
 CATEGORIES_LIST = []
 FILES_LIST = []
-
+CURRENT_VIDEO = None
 width = 900
 height = 807
 settings = {
@@ -61,18 +65,91 @@ def abort(return_msg:dict):
 	changegui(False)
 	return return_msg
 
+def play(weburl:str):
+	global VLC_PATH
+	global VLC_PORT
+	global VLC_HTTP_PASS
+	global CURRENT_VIDEO
+	if CURRENT_VIDEO != None:
+		print("already playing a vid")
+		return False
+	CURRENT_VIDEO = weburl
+	r = post("https://api.turkuazz.online/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+	r = int(eval(r.decode("utf-8")))
+	# print(r,VLC_PORT,VLC_HTTP_PASS,url)
+	url = "https://cdn.turkuazz.online/video?vid=" + weburl
+	proc = Popen(fr'"{VLC_PATH}" --intf qt --start-time={r} --extraintf http --http-port {VLC_PORT} --http-password {VLC_HTTP_PASS} {url}')
+	duration = -1
+	retry = 0
+	def get_info():
+		try:
+			response = post(f"http://localhost:{VLC_PORT}/requests/status.json", auth=("",VLC_HTTP_PASS))
+			response.raise_for_status()
+			return response.json()
+		except:
+			return None
+	while duration == -1:
+		data = get_info()
+		if data == None:
+			if retry > 10:
+				print("failed to get duration")
+				return False
+			retry += 1
+			sleep(0.2)
+			continue
+		else:
+			duration = data['length']
+	r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":0,"state":"starting"}).content
+	if r == b"ok":
+		print("updated starting")
+	currentstate = None
+	currenttime = None
+	update_timeout = time()
+	while True:
+		data = get_info()
+		if data == None:
+			print(f"{currenttime}/{duration}, exit")
+			CURRENT_VIDEO = None
+			return True
+		state = data['state']
+		ttime = data['time']
+		if time() - update_timeout > 5:
+			r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY},json={"weburl":weburl,"current":ttime,"state":"update_time"}).content
+			if r == b"ok":
+				print("updated current_time")
+			else:
+				print("failed to update current_time")
+			update_timeout = time()
+		if currentstate == state and currenttime == ttime:
+			sleep(0.1)
+			continue
+		if state == "stopped":
+			print(f"{currenttime}/{duration}, ended")
+			# return True
+		if ttime == duration:
+			r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"finished":1}).content
+			if r == b"ok":
+				print("updated finished")
+			else:
+				print("failed to update finished")
+		else:
+			r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":ttime,"state":state}).content
+			if r == b"ok":
+				print("updated current")
+			else:
+				print("failed to update current")
+		
+		currenttime = ttime
+		currentstate = state
+		print(f"{currenttime}/{duration}, {currentstate}")
+
 class Api:
 	
 	def echostuff(self,*msg):
-		print(msg)
+		print([i for i in msg])
 		return True
-	def openvlc(self, url:str):
-		global VLC_PATH
-		# open vlc with cmd
-		url = "https://cdn.turkuazz.online/video?vid=" + url
-		print("opening", url)
-		proc = Popen(fr'"{VLC_PATH}" {url}')
-		print("vlc opened")
+	def openvlc(self, weburl:str):
+		Thread(target=play, args=(weburl,)).start()
 		return True
 	def changetitle(self, title:str):
 		global WINDOW
@@ -85,6 +162,11 @@ class Api:
 			OPEN_DIALOG, allow_multiple=True, file_types=('All files (*.*)',)
 		)
 		return {'files': result}
+	
+	def get_lastactivity(self):
+		r = post("https://api.turkuazz.online/v1/activity/lastactivies", headers={"api-key":API_KEY}).content
+		r = eval(r.decode("utf-8"))
+		return str(r)
 	
 	def get_categories(self):
 		global CATEGORIES
@@ -234,7 +316,8 @@ if __name__ == '__main__':
 				for l in CATEGORIES_LIST[i][k]:
 					CATEGORIES.append(f"{i}/{k}/{l}/")
 		api = Api()
-		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 	except:
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
 	start(http_port=PORT)

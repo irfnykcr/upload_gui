@@ -1,2 +1,3 @@
 outdir/
 .venv/
+config/config.json

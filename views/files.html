@@ -123,76 +123,102 @@ window.pywebview.api.get_categories_list().then(
 
 const _urlParamss = new URLSearchParams(window.location.search);
 const _c = _urlParamss.get('c');
-const splitted_catg = _c.split("/");
-window.pywebview.api.get_categories_list(_c).then( function(response){
-	categories = response["categories"];
-	if (Object.keys(categories).length > 0) {
-		categories.forEach(ctg => {
-			let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
-			let goto = (_c.endsWith("/") ? _c.slice(0, -1) : _c) + "/" + ctg;
-			let imgSrc = "/stuff/folder.png";
-			li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
-			li.append(`<a href="/index.html?i=files&c=${goto}" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${ctg}</a>`);
-			catgFiles.append(li);
-		});
-	}
-});
-if (_c != null) {
-	window.pywebview.api.get_files(
-		_c
-	).then(function(response) {
-		const target_dir = $(".js-filter");
-		const files = response["files"];
-		//there should be breadcrumbs and catg-files
-		const breadcrumbs = $(".breadcrumbs");
-		breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}">${splitted_catg[0]}</a>`);
-		
-		if (splitted_catg.length == 2) {
-			breadcrumbs.append(' / ');
-			breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
-		} else if (splitted_catg.length == 3) {
-			breadcrumbs.append(' / ');
-			breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
-			breadcrumbs.append(' / ');
-			breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}/${splitted_catg[2]}">${splitted_catg[2]}</a>`);
-		}
-		
-		if (files.length > 0 ) {
-			files.forEach(file => {
-				let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
-				li.attr("data-name", file[1]);
-				li.attr("data-size", file[3]);
-				li.attr("data-time", file[0]);
-				let imgSrc = "/stuff/logo_lowq.jpg";
-				// if (file.type === "video") {
-				// 	imgSrc = file.img ? `/images_vids/${file.id}/1.webp` : "/content_player/best.jpeg";
-				// } else if (file.type === "photo") {
-				// 	imgSrc = "/content_pages/foti.jpg";
-				// } else if (file.type === "text") {
-				// 	imgSrc = "/content_pages/txt.jpg";
-				// }
-				li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
-				if (file[4] === "video") {
-					li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" onclick="vlcopen('${file[0]}');" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${file[1]}</a>`);
-				} else {
-					li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;" target="_blank" href="https://turkuazz.online/player?vid=${file[0]}">${file[1]}</a>`);
-				}
-				catgFiles.append(li);
+if (_c == null) {
+	window.pywebview.api.get_lastactivity().then(
+		function(response){
+			response = response.replace(/'/g, '"');
+			response = JSON.parse(response);
+			lastact = `<div style="max-height: 600px; overflow-y: auto;min-width:100%;">
+							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">`;
+			response.forEach(element => {
+				weburl = element[0];
+				name = element[1];
+				about = element[2];
+				lastact += `<li>
+								<div>
+									<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
+									<a onclick="vlcopen('${weburl}');">`+name+`</a>
+									<p>`+about+`</p>
+								</div>
+							</li>`;
 			});
-		} else {
-			window.pywebview.api.get_categories_list(_c).then( function(response){
-				if (Object.keys(response["categories"]).length < 1) {
-					catgFiles.append(`<li style="margin-bottom:90px;display:flex;justify-content:center;"><a style="color:white !important;font-size:larger;padding:10px; overflow-wrap:anywhere;display:flex;justify-content:center;">no files</a></li>`);
-				}
+			lastact += `</ul></div>`;
+			catgFiles.append(lastact);
+		}
+	);
+} else {
+	const splitted_catg = _c.split("/");
+	window.pywebview.api.get_categories_list(_c).then( function(response){
+		categories = response["categories"];
+		if (Object.keys(categories).length > 0) {
+			categories.forEach(ctg => {
+				let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
+				let goto = (_c.endsWith("/") ? _c.slice(0, -1) : _c) + "/" + ctg;
+				let imgSrc = "/stuff/folder.png";
+				li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
+				li.append(`<a href="/index.html?i=files&c=${goto}" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${ctg}</a>`);
+				catgFiles.append(li);
 			});
 		}
 	});
+	if (_c != null) {
+		window.pywebview.api.get_files(
+			_c
+		).then(function(response) {
+			const target_dir = $(".js-filter");
+			const files = response["files"];
+			//there should be breadcrumbs and catg-files
+			const breadcrumbs = $(".breadcrumbs");
+			breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}">${splitted_catg[0]}</a>`);
+			
+			if (splitted_catg.length == 2) {
+				breadcrumbs.append(' / ');
+				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
+			} else if (splitted_catg.length == 3) {
+				breadcrumbs.append(' / ');
+				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
+				breadcrumbs.append(' / ');
+				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}/${splitted_catg[2]}">${splitted_catg[2]}</a>`);
+			}
+			
+			if (files.length > 0 ) {
+				files.forEach(file => {
+					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
+					li.attr("data-name", file[1]);
+					li.attr("data-size", file[3]);
+					li.attr("data-time", file[0]);
+					let imgSrc = "/stuff/logo_lowq.jpg";
+					// if (file.type === "video") {
+					// 	imgSrc = file.img ? `/images_vids/${file.id}/1.webp` : "/content_player/best.jpeg";
+					// } else if (file.type === "photo") {
+					// 	imgSrc = "/content_pages/foti.jpg";
+					// } else if (file.type === "text") {
+					// 	imgSrc = "/content_pages/txt.jpg";
+					// }
+					li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
+					if (file[4] === "video") {
+						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" onclick="vlcopen('${file[0]}');" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${file[1]}</a>`);
+					} else {
+						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;" target="_blank" href="https://turkuazz.online/player?vid=${file[0]}">${file[1]}</a>`);
+					}
+					catgFiles.append(li);
+				});
+			} else {
+				window.pywebview.api.get_categories_list(_c).then( function(response){
+					if (Object.keys(response["categories"]).length < 1) {
+						catgFiles.append(`<li style="margin-bottom:90px;display:flex;justify-content:center;"><a style="color:white !important;font-size:larger;padding:10px; overflow-wrap:anywhere;display:flex;justify-content:center;">no files</a></li>`);
+					}
+				});
+			}
+		});
+	}
 }
+
 
 function vlcopen(vid) {
 	window.pywebview.api.openvlc(vid).then(
 	function(response){
-		echostuff(response);
+		// echostuff(response);
 	});
 }
 
