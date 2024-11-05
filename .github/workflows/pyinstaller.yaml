@@ -30,17 +30,17 @@ jobs:
         Remove-Item -Force gui2.spec
         cd py_files
         pyinstaller --onefile --clean upload.py
-        cp dist/upload.exe py_files/upload.exe
+        cp dist/upload.exe upload.exe
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force upload.spec
         pyinstaller --onefile --clean download.py
-        cp dist/download.exe py_files/download.exe
+        cp dist/download.exe download.exe
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force download.spec
         pyinstaller --onefile --clean generate_thumb.py
-        cp dist/generate_thumb.exe py_files/generate_thumb.exe
+        cp dist/generate_thumb.exe generate_thumb.exe
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force generate_thumb.spec
