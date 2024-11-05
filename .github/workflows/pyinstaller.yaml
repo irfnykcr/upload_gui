@@ -24,19 +24,23 @@ jobs:
       run: |
         # Build each script without bundling resources & copy
         pyinstaller --onefile --clean gui2.py
+        cp dist/gui2.exe gui2.exe
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force gui2.spec
         cd py_files
         pyinstaller --onefile --clean upload.py
+        cp dist/upload.exe py_files/upload.exe
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force upload.spec
         pyinstaller --onefile --clean download.py
+        cp dist/download.exe py_files/download.exe
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force download.spec
         pyinstaller --onefile --clean generate_thumb.py
+        cp dist/generate_thumb.exe py_files/generate_thumb.exe
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force generate_thumb.spec
@@ -49,5 +53,5 @@ jobs:
     - name: Upload Zip File
       uses: actions/upload-artifact@v3
       with:
-        name: packaged_executables
+        name: packaged_files
         path: package.zip
