@@ -65,6 +65,16 @@ def abort(return_msg:dict):
 	changegui(False)
 	return return_msg
 
+def make_request(url:str, json:dict, msg:str):
+	global API_KEY
+	try:
+		r = post(url, headers={"api-key":API_KEY}, json=json)
+		rc = r.content
+		print("made request:",msg,rc)
+		return rc
+	except:
+		return None
+
 def play(weburl:str):
 	global VLC_PATH
 	global VLC_PORT
@@ -74,8 +84,12 @@ def play(weburl:str):
 		print("already playing a vid")
 		return False
 	CURRENT_VIDEO = weburl
-	r = post("https://api.turkuazz.online/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
-	r = int(eval(r.decode("utf-8")))
+	try:
+		r = post("https://api.turkuazz.online/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		r = int(eval(r.decode("utf-8")))
+	except:
+		print("failed to get currentsec")
+		r = 0
 	# print(r,VLC_PORT,VLC_HTTP_PASS,url)
 	url = "https://cdn.turkuazz.online/video?vid=" + weburl
 	proc = Popen(fr'"{VLC_PATH}" --intf qt --start-time={r} --extraintf http --http-port {VLC_PORT} --http-password {VLC_HTTP_PASS} {url}')
@@ -102,6 +116,8 @@ def play(weburl:str):
 	r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":0,"state":"starting"}).content
 	if r == b"ok":
 		print("updated starting")
+	else:
+		print("failed to update starting", r)
 	currentstate = None
 	currenttime = None
 	update_timeout = time()
@@ -114,11 +130,12 @@ def play(weburl:str):
 		state = data['state']
 		ttime = data['time']
 		if time() - update_timeout > 5:
-			r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY},json={"weburl":weburl,"current":ttime,"state":"update_time"}).content
-			if r == b"ok":
-				print("updated current_time")
-			else:
-				print("failed to update current_time")
+			# r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY},json={"weburl":weburl,"current":ttime,"state":"update_time"}).content
+			# if r == b"ok":
+			# 	print("updated current_time")
+			# else:
+			# 	print("failed to update current_time", r)
+			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":"update_time"},"update_time")).start()
 			update_timeout = time()
 		if currentstate == state and currenttime == ttime:
 			sleep(0.1)
@@ -127,17 +144,19 @@ def play(weburl:str):
 			print(f"{currenttime}/{duration}, ended")
 			# return True
 		if ttime == duration:
-			r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"finished":1}).content
-			if r == b"ok":
-				print("updated finished")
-			else:
-				print("failed to update finished")
+			# r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"finished":1}).content
+			# if r == b"ok":
+			# 	print("updated finished")
+			# else:
+			# 	print("failed to update finished", r)
+			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
 		else:
-			r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":ttime,"state":state}).content
-			if r == b"ok":
-				print("updated current")
-			else:
-				print("failed to update current")
+			# r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":ttime,"state":state}).content
+			# if r == b"ok":
+			# 	print("updated current")
+			# else:
+			# 	print("failed to update current", r, state)
+			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
 		
 		currenttime = ttime
 		currentstate = state

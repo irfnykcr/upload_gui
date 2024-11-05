@@ -132,7 +132,8 @@ if (_c == null) {
 							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">`;
 			response.forEach(element => {
 				weburl = element[0];
-				name = element[1];
+				name = element[1].replace("*", "'");
+				echostuff(name);
 				about = element[2];
 				lastact += `<li>
 								<div>
