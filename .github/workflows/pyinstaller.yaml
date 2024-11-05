@@ -51,7 +51,7 @@ jobs:
         powershell Compress-Archive -Path * -DestinationPath ./package.zip
 
     - name: Upload Zip File
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: packaged_files
         path: package.zip
