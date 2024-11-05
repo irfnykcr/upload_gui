@@ -21,21 +21,21 @@ jobs:
       run: |
         # Build each script without bundling resources & copy
         pyinstaller --onefile --clean gui2.py
-        rm -rf dist
-        rm -rf build
-        rm -f gui2.spec
+        Remove-Item -Recurse -Force dist
+        Remove-Item -Recurse -Force build
+        Remove-Item -Force gui2.spec
         pyinstaller --onefile --clean upload.py
-        rm -rf dist
-        rm -rf build
-        rm -f upload.spec
+        Remove-Item -Recurse -Force dist
+        Remove-Item -Recurse -Force build
+        Remove-Item -Force upload.spec
         pyinstaller --onefile --clean download.py
-        rm -rf dist
-        rm -rf build
-        rm -f download.spec
+        Remove-Item -Recurse -Force dist
+        Remove-Item -Recurse -Force build
+        Remove-Item -Force download.spec
         pyinstaller --onefile --clean generate_thumb.py
-        rm -rf dist
-        rm -rf build
-        rm -f generate_thumb.spec
+        Remove-Item -Recurse -Force dist
+        Remove-Item -Recurse -Force build
+        Remove-Item -Force generate_thumb.spec
 
     - name: Create Zip File
       run: |
