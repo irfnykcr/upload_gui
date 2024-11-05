@@ -13,7 +13,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-    
+
+    - name: Install Dependencies
+      run: pip install -r requirements.txt
+
     - name: Install PyInstaller
       run: pip install pyinstaller
 
@@ -24,6 +27,7 @@ jobs:
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
         Remove-Item -Force gui2.spec
+        cd py_files
         pyinstaller --onefile --clean upload.py
         Remove-Item -Recurse -Force dist
         Remove-Item -Recurse -Force build
