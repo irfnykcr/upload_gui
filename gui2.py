@@ -85,13 +85,13 @@ def play(weburl:str):
 		return False
 	CURRENT_VIDEO = weburl
 	try:
-		r = post("https://api.turkuazz.online/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		r = post("https://api.turkuazz.vip/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		r = int(eval(r.decode("utf-8")))
 	except:
 		print("failed to get currentsec")
 		r = 0
 	# print(r,VLC_PORT,VLC_HTTP_PASS,url)
-	url = "https://cdn.turkuazz.online/video?vid=" + weburl
+	url = "https://cdn.turkuazz.vip/video?vid=" + weburl
 	proc = Popen(fr'"{VLC_PATH}" --intf qt --start-time={r} --extraintf http --http-port {VLC_PORT} --http-password {VLC_HTTP_PASS} {url}')
 	duration = -1
 	retry = 0
@@ -113,7 +113,7 @@ def play(weburl:str):
 			continue
 		else:
 			duration = data['length']
-	r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":0,"state":"starting"}).content
+	r = post("https://api.turkuazz.vip/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":0,"state":"starting"}).content
 	if r == b"ok":
 		print("updated starting")
 	else:
@@ -130,7 +130,7 @@ def play(weburl:str):
 		state = data['state']
 		ttime = data['time']
 		if time() - update_timeout > 5:
-			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":"update_time"},"update_time")).start()
+			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":"update_time"},"update_time")).start()
 			update_timeout = time()
 		if currentstate == state and currenttime == ttime:
 			sleep(0.1)
@@ -138,9 +138,9 @@ def play(weburl:str):
 		if state == "stopped":
 			print(f"{currenttime}/{duration}, ended")
 		if ttime == duration:
-			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
+			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
 		else:
-			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
+			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
 		
 		currenttime = ttime
 		currentstate = state
@@ -167,7 +167,7 @@ class Api:
 		return {'files': result}
 	
 	def get_lastactivity(self):
-		r = post("https://api.turkuazz.online/v1/activity/lastactivies", headers={"api-key":API_KEY}).content
+		r = post("https://api.turkuazz.vip/v1/activity/lastactivies", headers={"api-key":API_KEY}).content
 		r = eval(r.decode("utf-8"))
 		return str(r)
 	
@@ -190,7 +190,7 @@ class Api:
 	def get_files(self, category:str):
 		global FILES_LIST
 		if FILES_LIST == []:
-			r:bytes = post("https://api.turkuazz.online/v1/files/getfiles", headers={"api-key":API_KEY}).content
+			r:bytes = post("https://api.turkuazz.vip/v1/files/getfiles", headers={"api-key":API_KEY}).content
 			FILES_LIST = eval(r.decode("utf-8"))
 		if category[-1] != "/":
 			category = category + "/"
@@ -204,7 +204,7 @@ class Api:
 	# 		weburl = int(weburl)
 	# 	except:
 	# 		return {'file': None}
-	# 	r = post("https://api.turkuazz.online/v1/files/getfile", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+	# 	r = post("https://api.turkuazz.vip/v1/files/getfile", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 	# 	return {'file': eval(r.decode("utf-8"))}
 	def searchinall(self, weburl:str):
 		try:
@@ -213,7 +213,7 @@ class Api:
 			return {'file': None}
 		global FILES_LIST
 		if FILES_LIST == []:
-			r = post("https://api.turkuazz.online/v1/files/getfiles", headers={"api-key":API_KEY}).content
+			r = post("https://api.turkuazz.vip/v1/files/getfiles", headers={"api-key":API_KEY}).content
 			FILES_LIST = eval(r.decode("utf-8"))
 		for i in FILES_LIST:
 			if i[0] == weburl:
@@ -328,7 +328,7 @@ class Api:
 	
 if __name__ == '__main__':
 	try:
-		r = post("https://api.turkuazz.online/v1/upload/get_categories", headers={"api-key":API_KEY})
+		r = post("https://api.turkuazz.vip/v1/upload/get_categories", headers={"api-key":API_KEY})
 		CATEGORIES_LIST = r.json()
 		CATEGORIES = []
 		for i in CATEGORIES_LIST:
