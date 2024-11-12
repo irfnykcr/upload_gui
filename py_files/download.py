@@ -26,7 +26,7 @@ THREADS_NOW = 0
 def getfile_info():
 	global WEBURL
 	global UNIQUE_KEY
-	r = requests.post(f"https://api.turkuazz.online/v1/download/getfile_info", headers={"api-key":UNIQUE_KEY}, json={"weburl":WEBURL})
+	r = requests.post(f"https://api.turkuazz.vip/v1/download/getfile_info", headers={"api-key":UNIQUE_KEY}, json={"weburl":WEBURL})
 	if r.status_code != 200:
 		return False, r.content
 	return eval(r.content)
@@ -49,7 +49,7 @@ def download_chunk(url, n):
 	global WEBURL
 	try:
 		print(f"+ {n}")
-		r = requests.post(f"https://api.turkuazz.online/v1/download/get_chunk", headers={"api-key":UNIQUE_KEY}, json={"url":url, "weburl":WEBURL})
+		r = requests.post(f"https://api.turkuazz.vip/v1/download/get_chunk", headers={"api-key":UNIQUE_KEY}, json={"url":url, "weburl":WEBURL})
 		data = r.content
 		if r.status_code != 200:
 			if RETRIES >= MAX_RETRY:

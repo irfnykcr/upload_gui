@@ -130,11 +130,6 @@ def play(weburl:str):
 		state = data['state']
 		ttime = data['time']
 		if time() - update_timeout > 5:
-			# r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY},json={"weburl":weburl,"current":ttime,"state":"update_time"}).content
-			# if r == b"ok":
-			# 	print("updated current_time")
-			# else:
-			# 	print("failed to update current_time", r)
 			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":"update_time"},"update_time")).start()
 			update_timeout = time()
 		if currentstate == state and currenttime == ttime:
@@ -142,20 +137,9 @@ def play(weburl:str):
 			continue
 		if state == "stopped":
 			print(f"{currenttime}/{duration}, ended")
-			# return True
 		if ttime == duration:
-			# r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"finished":1}).content
-			# if r == b"ok":
-			# 	print("updated finished")
-			# else:
-			# 	print("failed to update finished", r)
 			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
 		else:
-			# r = post("https://api.turkuazz.online/v1/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":ttime,"state":state}).content
-			# if r == b"ok":
-			# 	print("updated current")
-			# else:
-			# 	print("failed to update current", r, state)
 			Thread(target=make_request, args=("https://api.turkuazz.online/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
 		
 		currenttime = ttime
@@ -215,7 +199,26 @@ class Api:
 			if i[2] == category:
 				_temp_ctg.append(i)
 		return {'files': _temp_ctg}
-
+	# def get_file(self, weburl:str):
+	# 	try:
+	# 		weburl = int(weburl)
+	# 	except:
+	# 		return {'file': None}
+	# 	r = post("https://api.turkuazz.online/v1/files/getfile", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+	# 	return {'file': eval(r.decode("utf-8"))}
+	def searchinall(self, weburl:str):
+		try:
+			weburl = int(weburl)
+		except:
+			return {'file': None}
+		global FILES_LIST
+		if FILES_LIST == []:
+			r = post("https://api.turkuazz.online/v1/files/getfiles", headers={"api-key":API_KEY}).content
+			FILES_LIST = eval(r.decode("utf-8"))
+		for i in FILES_LIST:
+			if i[0] == weburl:
+				return {'file': i}
+		return {'file': None}
 	def download(self, weburl:str):
 		global WINDOW
 		global CMD_DOWNLOAD
@@ -336,7 +339,7 @@ if __name__ == '__main__':
 					CATEGORIES.append(f"{i}/{k}/{l}/")
 		api = Api()
 		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
-		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=edit", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 	except:
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
 	start(http_port=PORT)
