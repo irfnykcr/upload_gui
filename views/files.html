@@ -133,11 +133,21 @@ if (_c == null) {
 			response.forEach(element => {
 				weburl = element[0];
 				name = element[1].replace("*", "'");
-				echostuff(name);
+				// echostuff(name);
 				about = element[2];
 				lastact += `<li>
 								<div>
-									<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
+									<div style="position: relative; display: inline-block;">
+										<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
+										<div class="overlayfor_img" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
+											<div style="position: absolute; bottom: 10px; left: 10px; width: 50px; height: 50px;" onclick="leftImageFunction('${weburl}')">
+												<img src="/stuff/x.png" style="width:64px;height:auto;">
+											</div>
+											<div style="position: absolute; bottom: 10px; right: 10px; width: 50px; height: 50px;" onclick="rightImageFunction('${weburl}')">
+												<img src="/stuff/finish.png" style="width:64px;height:auto;">
+											</div>
+										</div>
+									</div>
 									<a onclick="vlcopen('${weburl}');">`+name+`</a>
 									<p>`+about+`</p>
 								</div>
@@ -145,6 +155,14 @@ if (_c == null) {
 			});
 			lastact += `</ul></div>`;
 			catgFiles.append(lastact);
+			document.querySelectorAll('.overlayfor_img').forEach(item => {
+				item.addEventListener('mouseover', event => {
+					item.style.opacity = '1';
+				});
+				item.addEventListener('mouseout', event => {
+					item.style.opacity = '0';
+				});
+			});
 		}
 	);
 } else {
@@ -213,6 +231,25 @@ if (_c == null) {
 			}
 		});
 	}
+}
+
+function leftImageFunction(weburl){
+	pywebview.api.activities_remove_video(weburl).then(
+		function(response){
+			echostuff(response);
+			window.location.href="/index.html?i=files";
+		}
+	);
+
+}
+
+function rightImageFunction(weburl){
+	pywebview.api.activities_finish_video(weburl).then(
+		function(response){
+			echostuff(response);
+			window.location.href="/index.html?i=files";
+		}
+	);
 }
 
 

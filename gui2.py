@@ -166,10 +166,18 @@ class Api:
 		)
 		return {'files': result}
 	
+	def activities_finish_video(self, weburl):
+		r = post("https://api.turkuazz.vip/v1/activity/finish_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		return str(r.decode("utf-8"))
+	
+	def activities_remove_video(self, weburl):
+		r = post("https://api.turkuazz.vip/v1/activity/remove_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		r = r.decode("utf-8")
+		return str(r)
+
 	def get_lastactivity(self):
 		r = post("https://api.turkuazz.vip/v1/activity/lastactivies", headers={"api-key":API_KEY}).content
-		r = eval(r.decode("utf-8"))
-		return str(r)
+		return str(r.decode("utf-8"))
 	
 	def get_categories(self):
 		global CATEGORIES
@@ -339,7 +347,7 @@ if __name__ == '__main__':
 					CATEGORIES.append(f"{i}/{k}/{l}/")
 		api = Api()
 		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
-		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=edit", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 	except:
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
 	start(http_port=PORT)
