@@ -1,9 +1,9 @@
+<script src="/js/lazysizes.js" async></script>
 <link rel="stylesheet" href="/stuff/header.css" />
 <link rel="stylesheet" href="/stuff/uikit.css" />
+<script src="/js/jquery.js"></script>
 <script src="/js/uikit.js"></script>
 <script src="/js/uikit-icons.js"></script>
-<script src="/js/lazysizes.js" async></script>
-<script src="/js/jquery.js"></script>
 
 
 <div data-include="/stuff/header"></div>
@@ -19,7 +19,6 @@ body {
 
 
 <script>
-
 window.addEventListener('pywebviewready', async function() {
 	await start();
 });
@@ -27,9 +26,9 @@ window.addEventListener('pywebviewready', async function() {
 async function loadpages(){
 	const _urlParams = new URLSearchParams(window.location.search);
 	const _i = _urlParams.get('i');
-	const _current_page = $('.current-page');
-	_current_page.html('<div class="current-page" data-include="'+_i+'"></div>');
-	const _includes = $('[data-include]');
+	const _current_page = document.querySelector('.current-page');
+	_current_page.innerHTML = `<div class="current-page" data-include="${_i}"></div>`;
+	const _includes = document.querySelectorAll('[data-include]');
 
 	$.each(_includes, function () {
 		var file = $(this).data('include') + '.html';

@@ -21,6 +21,7 @@ with open(fr"{CURRENT_PATH}/config/config.json", "r") as f:
 	VLC_PATH = j['vlc']
 	VLC_PORT = j['vlc_port']
 	VLC_HTTP_PASS = j['vlc_http_pass']
+	CDN_URL = j['cdn_url']
 ACCEPTED_CHR = list("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+-[]{} ")
 VIDEO_EXT = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"]
 PHOTO_EXT = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
@@ -80,6 +81,7 @@ def play(weburl:str):
 	global VLC_PORT
 	global VLC_HTTP_PASS
 	global CURRENT_VIDEO
+	global CDN_URL
 	if CURRENT_VIDEO != None:
 		print("already playing a vid")
 		return False
@@ -91,8 +93,18 @@ def play(weburl:str):
 		print("failed to get currentsec")
 		r = 0
 	# print(r,VLC_PORT,VLC_HTTP_PASS,url)
-	url = "https://cdn.turkuazz.vip/video?vid=" + weburl
-	proc = Popen(fr'"{VLC_PATH}" --intf qt --start-time={r} --extraintf http --http-port {VLC_PORT} --http-password {VLC_HTTP_PASS} {url}')
+	url = CDN_URL + weburl
+	
+	command = [VLC_PATH, 
+			"--intf", "qt",
+			"--start-time="+str(r), 
+			"--extraintf", "http",
+			"--http-port", str(VLC_PORT),
+			"--http-password", str(VLC_HTTP_PASS),
+			url
+		]
+
+	proc = Popen(command)#, stdout=PIPE, stderr=PIPE)
 	duration = -1
 	retry = 0
 	def get_info():
@@ -138,7 +150,8 @@ def play(weburl:str):
 		if state == "stopped":
 			print(f"{currenttime}/{duration}, ended")
 		if ttime == duration:
-			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
+			#Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
+			print("finished but didnt update. will worked on it later.")
 		else:
 			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
 		

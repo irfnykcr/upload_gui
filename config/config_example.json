@@ -10,5 +10,6 @@
 	"cmd_download": "python -u ./py_files/download.py",
 	"vlc": "C:/Program Files/VLC/vlc.exe",
 	"vlc_port": 8092,
-	"vlc_http_pass": "w1Vam0l3chtgrRWP"
+	"vlc_http_pass": "w1Vam0l3chtgrRWP",
+	"cdn_url": "https://cdn.turkuazz.vip/video?vid="
 }
