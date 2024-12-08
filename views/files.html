@@ -129,7 +129,9 @@ if (_c == null) {
 			response = response.replace(/'/g, '"');
 			response = JSON.parse(response);
 			lastact = `<div style="max-height: 600px; overflow-y: auto;min-width:100%;">
-							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">`;
+							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">
+								<li style="margin-right:-80px;">
+								</li>`; // to fix visual bug
 			response.forEach(element => {
 				weburl = element[0];
 				name = element[1].replace("*", "'");
@@ -140,10 +142,16 @@ if (_c == null) {
 									<div style="position: relative; display: inline-block;">
 										<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
 										<div class="overlayfor_img" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
-											<div style="position: absolute; bottom: 10px; left: 10px; width: 50px; height: 50px;" onclick="leftImageFunction('${weburl}')">
+											<div style="position: absolute; bottom: 75px; left: 35px; width: auto; height: auto;background-color:black;opacity:0.75;" onclick="copyTextToClipboard('${weburl}')">
+												<a style="color:yellow !important;">copy weburl</a>
+											</div>
+											<div style="position: absolute; bottom: 10px; left: 10px; width: 40px; height: auto;" onclick="leftImageFunction('${weburl}')">
 												<img src="/stuff/x.png" style="width:64px;height:auto;">
 											</div>
-											<div style="position: absolute; bottom: 10px; right: 10px; width: 50px; height: 50px;" onclick="rightImageFunction('${weburl}')">
+											<div style="position: absolute; bottom: 10px; right: 50px; width: 40px; height: auto;" onclick="middleImageFunction('${weburl}')">
+												<img src="/stuff/finish-r.png" style="width:64px;height:auto;">
+											</div>
+											<div style="position: absolute; bottom: 10px; right: 10px; width: 40px; height: auto;" onclick="rightImageFunction('${weburl}')">
 												<img src="/stuff/finish.png" style="width:64px;height:auto;">
 											</div>
 										</div>
@@ -244,7 +252,15 @@ function leftImageFunction(weburl){
 	);
 
 }
+function middleImageFunction(weburl){
+	pywebview.api.activities_back_video(weburl).then(
+		function(response){
+			echostuff(response);
+			window.location.href="/index.html?i=files";
+		}
+	);
 
+}
 function rightImageFunction(weburl){
 	pywebview.api.activities_finish_video(weburl).then(
 		function(response){

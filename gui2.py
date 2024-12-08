@@ -12,6 +12,7 @@ CURRENT_PATH = getcwd()
 print(CURRENT_PATH)
 with open(fr"{CURRENT_PATH}/config/config.json", "r") as f:
 	j = load(f)
+	PYTHON_VER = j['python']
 	CMD_UPLOAD = fr"{j['cmd_upload']}"
 	CMD_DOWNLOAD = fr"{j['cmd_download']}"
 	CMD_GEN = fr"{j['cmd_gen']}"
@@ -31,8 +32,8 @@ CATEGORIES = []
 CATEGORIES_LIST = []
 FILES_LIST = []
 CURRENT_VIDEO = None
-width = 900
-height = 807
+width = 1200
+height = 860
 settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
@@ -96,13 +97,13 @@ def play(weburl:str):
 	url = CDN_URL + weburl
 	
 	command = [VLC_PATH, 
-			"--intf", "qt",
-			"--start-time="+str(r), 
-			"--extraintf", "http",
-			"--http-port", str(VLC_PORT),
-			"--http-password", str(VLC_HTTP_PASS),
-			url
-		]
+		"--intf", "qt",
+		"--start-time="+str(r), 
+		"--extraintf", "http",
+		"--http-port", str(VLC_PORT),
+		"--http-password", str(VLC_HTTP_PASS),
+		str(url)
+	]
 
 	proc = Popen(command)#, stdout=PIPE, stderr=PIPE)
 	duration = -1
@@ -121,7 +122,7 @@ def play(weburl:str):
 				print("failed to get duration")
 				return False
 			retry += 1
-			sleep(0.2)
+			sleep(0.05)
 			continue
 		else:
 			duration = data['length']
@@ -131,32 +132,36 @@ def play(weburl:str):
 	else:
 		print("failed to update starting", r)
 	currentstate = None
-	currenttime = None
+	currenttime = 0
 	update_timeout = time()
 	while True:
 		data = get_info()
 		if data == None:
 			print(f"{currenttime}/{duration}, exit")
+			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":currenttime,"state":"update_time"},"update_time")).start()
 			CURRENT_VIDEO = None
 			return True
 		state = data['state']
 		ttime = data['time']
+		if state == "stopped":
+			print(f"{currenttime}/{duration}, ended")
+			sleep(0.1)
+			continue
 		if time() - update_timeout > 5:
 			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":"update_time"},"update_time")).start()
 			update_timeout = time()
-		if currentstate == state and currenttime == ttime:
+		if currentstate == state or currenttime == ttime:
 			sleep(0.1)
 			continue
-		if state == "stopped":
-			print(f"{currenttime}/{duration}, ended")
 		if ttime == duration:
 			#Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
 			print("finished but didnt update. will worked on it later.")
 		else:
 			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
 		
-		currenttime = ttime
 		currentstate = state
+		if currentstate != "ended":
+			currenttime = ttime 
 		print(f"{currenttime}/{duration}, {currentstate}")
 
 class Api:
@@ -181,6 +186,10 @@ class Api:
 	
 	def activities_finish_video(self, weburl):
 		r = post("https://api.turkuazz.vip/v1/activity/finish_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		return str(r.decode("utf-8"))
+	
+	def activities_back_video(self, weburl):
+		r = post("https://api.turkuazz.vip/v1/activity/back_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		return str(r.decode("utf-8"))
 	
 	def activities_remove_video(self, weburl):
@@ -220,13 +229,6 @@ class Api:
 			if i[2] == category:
 				_temp_ctg.append(i)
 		return {'files': _temp_ctg}
-	# def get_file(self, weburl:str):
-	# 	try:
-	# 		weburl = int(weburl)
-	# 	except:
-	# 		return {'file': None}
-	# 	r = post("https://api.turkuazz.vip/v1/files/getfile", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
-	# 	return {'file': eval(r.decode("utf-8"))}
 	def searchinall(self, weburl:str):
 		try:
 			weburl = int(weburl)
@@ -243,6 +245,7 @@ class Api:
 	def download(self, weburl:str):
 		global WINDOW
 		global CMD_DOWNLOAD
+		global PYTHON_VER
 		changegui(True)
 		changeconsole(f"downloading: {weburl}")
 		weburl = ''.join(x for x in weburl if x.isdigit())
@@ -250,9 +253,16 @@ class Api:
 		if OUTDIR == None:
 			changeconsole("selected folder is invalid. using default from config.")
 			OUTDIR = DEFAULT_OUTDIR
-		args = fr'"{weburl}" "{OUTDIR}"'
-		changeconsole(args)
-		proc = Popen(fr"{CMD_DOWNLOAD} {args}", stdout=PIPE, text=True, bufsize=1)
+		if type(OUTDIR) == list or type(OUTDIR) == tuple or type(OUTDIR) == set:
+			OUTDIR = OUTDIR[0]
+		command = [PYTHON_VER,
+			"-u",
+			CMD_DOWNLOAD,
+			str(weburl),
+			str(OUTDIR)
+		]
+		changeconsole(command)
+		proc = Popen(command, stdout=PIPE, text=True, bufsize=1)
 		while True:
 			line = proc.stdout.readline()
 			changeconsole(line.strip())
@@ -268,6 +278,9 @@ class Api:
 		global TXT_EXT
 		global CATEGORIES
 		global WINDOW
+		global PYTHON_VER
+		global CMD_GEN
+		global CMD_UPLOAD
 		changegui(True)
 		changeconsole(f"items: {items}")
 		FILE = items[0]
@@ -324,9 +337,15 @@ class Api:
 
 			if (ftype == "video") or (ftype == "image"):
 				random_name = fname + uuid4().hex[:5]
-				args = fr'"{ffile}" "{random_name}" "{ftype}"'
-				proc = Popen(fr"{CMD_GEN} {args}", stdout=PIPE, text=True, bufsize=1)
-				changeconsole(args)
+				command = [PYTHON_VER,
+			   		"-u",
+					CMD_GEN,
+			   		str(ffile),
+					str(random_name),
+					str(ftype)
+				]
+				proc = Popen(command, stdout=PIPE, text=True, bufsize=1)
+				changeconsole(command)
 				while True:
 					line = proc.stdout.readline()
 					changeconsole(line.strip())
@@ -335,9 +354,18 @@ class Api:
 				changeconsole(f"generated random name. {random_name}")
 			changeconsole("thumbnail generated. uploading file..")
 	
-			args = fr'"{ffile}" "{fname}" "{about}" "{category}" "{ftype}" "{private}"'
-			proc = Popen(fr"{CMD_UPLOAD} {args}", stdout=PIPE, text=True, bufsize=1)
-			changeconsole(args)
+			command = [PYTHON_VER,
+				"-u",
+				CMD_UPLOAD,
+				str(ffile),
+				str(fname),
+				str(about),
+				str(category),
+				str(ftype),
+				str(private)
+			]
+			changeconsole(command)
+			proc = Popen(command, stdout=PIPE, text=True, bufsize=1)
 			while True:
 				line = proc.stdout.readline()
 				changeconsole(line.strip())
@@ -360,7 +388,7 @@ if __name__ == '__main__':
 					CATEGORIES.append(f"{i}/{k}/{l}/")
 		api = Api()
 		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
-		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
+		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=True, text_select=True, background_color="#181818")
 	except:
-		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=False, text_select=False, background_color="#181818")
-	start(http_port=PORT)
+		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=True, text_select=False, background_color="#181818")
+	start(http_port=PORT, gui="gtk")
