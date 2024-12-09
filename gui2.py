@@ -72,9 +72,10 @@ def make_request(url:str, json:dict, msg:str):
 	try:
 		r = post(url, headers={"api-key":API_KEY}, json=json)
 		rc = r.content
-		print("made request:",msg,rc)
+		print(f"{datetime.now()} // made request:",msg,rc)
 		return rc
-	except:
+	except Exception as e:
+		print(f"{datetime.now()} // failed to make request:",msg,e)
 		return None
 
 def play(weburl:str):
@@ -87,6 +88,9 @@ def play(weburl:str):
 		print("already playing a vid")
 		return False
 	CURRENT_VIDEO = weburl
+	def abort_vlc():
+		CURRENT_VIDEO = None
+		return "aborted"
 	try:
 		r = post("https://api.turkuazz.vip/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		r = int(eval(r.decode("utf-8")))
@@ -120,7 +124,7 @@ def play(weburl:str):
 		if data == None:
 			if retry > 10:
 				print("failed to get duration")
-				return False
+				return abort_vlc()
 			retry += 1
 			sleep(0.05)
 			continue
@@ -139,8 +143,7 @@ def play(weburl:str):
 		if data == None:
 			print(f"{currenttime}/{duration}, exit")
 			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":currenttime,"state":"update_time"},"update_time")).start()
-			CURRENT_VIDEO = None
-			return True
+			return abort_vlc()
 		state = data['state']
 		ttime = data['time']
 		if state == "stopped":
@@ -163,7 +166,7 @@ def play(weburl:str):
 		if currentstate != "ended":
 			currenttime = ttime 
 		print(f"{currenttime}/{duration}, {currentstate}")
-
+	return abort_vlc()
 class Api:
 	
 	def echostuff(self,*msg):
@@ -217,18 +220,27 @@ class Api:
 			return {'categories': [i for i in CATEGORIES_LIST[catg[0]][catg[1]]]}
 		else:
 			return {'categories': []}
-	def get_files(self, category:str):
+	def get_files(self, category:str=""):
 		global FILES_LIST
 		if FILES_LIST == []:
 			r:bytes = post("https://api.turkuazz.vip/v1/files/getfiles", headers={"api-key":API_KEY}).content
 			FILES_LIST = eval(r.decode("utf-8"))
-		if category[-1] != "/":
-			category = category + "/"
-		_temp_ctg = []
-		for i in FILES_LIST:
-			if i[2] == category:
-				_temp_ctg.append(i)
-		return {'files': _temp_ctg}
+		if category == "":
+			return {'files': FILES_LIST}
+		elif category == "*lastest":
+			f = FILES_LIST
+			f.sort(key=lambda x: x[7], reverse=True)
+			f = [[i[0],i[1],i[2],i[5]] for i in f][:15]
+			return str(f)
+		else:
+			if category[-1] != "/":
+				category = category + "/"
+			_temp_ctg = []
+			for i in FILES_LIST:
+				if i[2] == category:
+					_temp_ctg.append(i)
+			_temp_ctg.sort(key=lambda x: x[0])
+			return {'files': _temp_ctg}
 	def searchinall(self, weburl:str):
 		try:
 			weburl = int(weburl)
@@ -387,8 +399,9 @@ if __name__ == '__main__':
 				for l in CATEGORIES_LIST[i][k]:
 					CATEGORIES.append(f"{i}/{k}/{l}/")
 		api = Api()
+		api.get_files()
 		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=True, text_select=True, background_color="#181818")
 	except:
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=True, text_select=False, background_color="#181818")
-	start(http_port=PORT, gui="gtk")
+	start(http_port=PORT, gui="gtk", debug=True)

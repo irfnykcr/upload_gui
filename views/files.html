@@ -16,7 +16,7 @@
 				<!--  -->
 			</div>
 			<div class="uk-flex-right">
-			<div class="uk-inline">
+			<div class="uk-inline sort-button" style="display:none;">
 				<a class="uk-button uk-button-default" type="button">sort by:</a>
 				<div uk-dropdown="mode: click" class="uk-child-width-1-1">
 					<ul class="uk-nav uk-dropdown-nav">
@@ -32,9 +32,12 @@
 			</div>
 			</div>
 		</div>
-		<div class="uk-section">
+		<div class="uk-section" style="margin-top:-50px;">
 			<div class="uk-container">
 			<ul class="uk-grid-match uk-child-width-1-4@l uk-child-width-1-3@m uk-child-width-1-2@s uk-child-width-1-1 js-filter catg-files" uk-grid>
+				<!--  -->
+			</ul>
+			<ul class="uk-grid-match uk-child-width-1-4@l uk-child-width-1-3@m uk-child-width-1-2@s uk-child-width-1-1 js-filter uploaded-files" uk-grid>
 				<!--  -->
 			</ul></div>
 		</div>
@@ -43,6 +46,7 @@
 
 <script>
 const catgFiles = $(".catg-files");
+const uploadedFiles = $(".uploaded-files");
 
 function catg_togglerr() {
 	catg_toggler = document.getElementsByClassName("catg-toggler")[0];
@@ -128,22 +132,24 @@ if (_c == null) {
 		function(response){
 			response = response.replace(/'/g, '"');
 			response = JSON.parse(response);
-			lastact = `<div style="max-height: 600px; overflow-y: auto;min-width:100%;">
+			lastact = `<h1 style="margin-bottom:95px; width:100%;">last activity</h1>
+						<div style="max-height: 600px; overflow-y: auto;min-width:100%; margin-top:-100px;">
 							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">
 								<li style="margin-right:-80px;">
 								</li>`; // to fix visual bug
 			response.forEach(element => {
+				//echostuff(element);
 				weburl = element[0];
 				name = element[1].replace("*", "'");
-				// echostuff(name);
 				about = element[2];
+				catg = element[3];
 				lastact += `<li>
 								<div>
 									<div style="position: relative; display: inline-block;">
 										<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
 										<div class="overlayfor_img" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
-											<div style="position: absolute; bottom: 75px; left: 35px; width: auto; height: auto;background-color:black;opacity:0.75;" onclick="copyTextToClipboard('${weburl}')">
-												<a style="color:yellow !important;">copy weburl</a>
+											<div style="position: absolute; bottom: 75px; left: 30px; width: auto; height: auto;background-color:black;opacity:0.75;">
+												<a style="color:yellow !important;" href="/index.html?i=files&c=${catg}&focus=${weburl}">open category</a>
 											</div>
 											<div style="position: absolute; bottom: 10px; left: 10px; width: 40px; height: auto;" onclick="leftImageFunction('${weburl}')">
 												<img src="/stuff/x.png" style="width:64px;height:auto;">
@@ -157,7 +163,7 @@ if (_c == null) {
 										</div>
 									</div>
 									<div style="display:flex;justify-content:center;">
-										<a onclick="vlcopen('${weburl}');">`+name+`</a>
+										<a onclick="vlcopen('${weburl}');" oncontextmenu="copyTextToClipboard('${weburl}')">`+name+`</a>
 										<p>`+about+`</p>
 									</div>
 								</div>
@@ -175,7 +181,59 @@ if (_c == null) {
 			});
 		}
 	);
+
+
+	window.pywebview.api.get_files("*lastest").then(
+		function(response){
+			console.log(typeof(response));
+			lastupl =`<h1 style="margin-bottom:-5px; width:100%;">last uploads</h1>
+						<div style="max-height: 600px; overflow-y: auto;min-width:100%;">
+							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">
+								<li style="margin-right:-80px;">
+								</li>`; // to fix visual bug
+			response = response.replace(/'/g, '"');
+			response = JSON.parse(response);
+			console.log(response);
+			response.forEach(element => {
+				//echostuff(element);
+				weburl = element[0];
+				name = element[1];
+				catg = element[2];
+				about = element[3];
+				lastupl += `<li>
+								<div>
+									<div style="position: relative; display: inline-block;">
+										<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
+										<div class="overlayfor_img" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
+											<div style="position: absolute; bottom: 60px; left: 30px; width: auto; height: auto;background-color:black;opacity:0.75;">
+												<a style="color:yellow !important;" href="/index.html?i=files&c=${catg}&focus=${weburl}">open category</a>
+											</div>
+										</div>
+									</div>
+									<div style="display:flex;justify-content:center;">
+										<a onclick="vlcopen('${weburl}');" oncontextmenu="copyTextToClipboard('${weburl}')">`+name+`</a>
+										<p>`+about+`</p>
+									</div>
+								</div>
+							</li>`;
+			});
+			lastupl += `</ul></div>`;
+			uploadedFiles.append(lastupl);
+			document.querySelectorAll('.overlayfor_img').forEach(item => {
+				item.addEventListener('mouseover', event => {
+					item.style.opacity = '1';
+				});
+				item.addEventListener('mouseout', event => {
+					item.style.opacity = '0';
+				});
+			});
+		}
+	);
+	
+
+
 } else {
+	$(".sort-button").css("display", "block");
 	const splitted_catg = _c.split("/");
 	window.pywebview.api.get_categories_list(_c).then( function(response){
 		categories = response["categories"];
@@ -203,13 +261,13 @@ if (_c == null) {
 			if (splitted_catg.length == 2) {
 				breadcrumbs.append(' / ');
 				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
-			} else if (splitted_catg.length == 3) {
+			} else if (splitted_catg.length >= 3) {
 				breadcrumbs.append(' / ');
 				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
 				breadcrumbs.append(' / ');
 				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}/${splitted_catg[2]}">${splitted_catg[2]}</a>`);
 			}
-			
+			//echostuff(splitted_catg);
 			if (files.length > 0 ) {
 				files.forEach(file => {
 					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
@@ -224,7 +282,7 @@ if (_c == null) {
 					// } else if (file.type === "text") {
 					// 	imgSrc = "/content_pages/txt.jpg";
 					// }
-					li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
+					li.append(`<img id="weburl-`+file[0]+`" style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
 					if (file[4] === "video") {
 						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" onclick="vlcopen('${file[0]}');" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${file[1]}</a>`);
 					} else {
@@ -242,6 +300,9 @@ if (_c == null) {
 		});
 	}
 }
+
+
+
 
 function leftImageFunction(weburl){
 	pywebview.api.activities_remove_video(weburl).then(
@@ -282,4 +343,45 @@ if (document.cookie.indexOf("sent=") == -1) {
 	document.cookie = "sent=1";
 	UIkit.notification({message: 'right click to copy the webid', pos: 'top-right', timeout:2000, status: 'danger'});
 }
+
+</script>
+<style>
+	.glow {
+		position: relative; /* Ensure the box-shadow applies to the content area only */
+		z-index: 1; /* Make sure the glow is above other elements */
+		animation: glowEffect 1s ease-in-out;
+	}
+
+	@keyframes glowEffect {
+		0% {
+			box-shadow: 0 0 5px 3px rgba(255, 255, 0, 0.6);
+		}
+		50% {
+			box-shadow: 0 0 15px 6px rgba(255, 255, 0, 0.9);
+		}
+		100% {
+			box-shadow: 0 0 5px 3px rgba(255, 255, 0, 0.6);
+		}
+	}
+
+
+</style>
+<script>
+	requestAnimationFrame(() => {
+		const _focused = document.getElementById("weburl-"+_urlParamss.get('focus'));
+		if (_focused){
+		setTimeout(() => {
+			_focused.scrollIntoView({ behavior: "smooth"});
+			_focused.classList.add("glow")
+		}, 100);
+
+		setTimeout(() => {
+			_focused.classList.remove("glow");
+		}, 1000);
+	}
+});
+    
+
+
+
 </script>

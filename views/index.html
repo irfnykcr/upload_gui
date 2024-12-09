@@ -22,9 +22,8 @@ body {
 window.addEventListener('pywebviewready', async function() {
 	await start();
 });
-
+const _urlParams = new URLSearchParams(window.location.search);
 async function loadpages(){
-	const _urlParams = new URLSearchParams(window.location.search);
 	const _i = _urlParams.get('i');
 	const _current_page = document.querySelector('.current-page');
 	_current_page.innerHTML = `<div class="current-page" data-include="${_i}"></div>`;
