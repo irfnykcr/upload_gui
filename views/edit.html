@@ -3,6 +3,7 @@
 	<h2>edit</h2>
 	<div class="content" style="display: flex; flex-direction: column; align-items: center; gap: 20px;"></div>
 		<div>
+			<p style="color: green !important; font-weight: bold; background-color: #e0ffe0; padding: 10px; border-radius: 5px; text-align: center; width: 100%;display:none" class="success-message">success</p>
 			<div class="page1" style="display:flex;">
 				<div class="selectvid">
 					<label for="file">file:</label><br>
@@ -51,7 +52,7 @@
 					<label><input class="visibility-unlisted uk-radio" type="radio" name="visibility" checked="" value="unlisted">unlisted</label>
 					<br>
 	
-					<button class="uk-button">edit</button>
+					<button onclick="editvid();" class="uk-button">edit</button>
 				</div>
 			</div>
 			
@@ -88,13 +89,13 @@
 				files.forEach(file => {
 					$("#videoSelect").append(`<option value="${file[0]}">${file[1]}</option>`);
 				});
+				if (weburlisfirst === true){
+					$('#searchbyweburl').val(files[0][0]);
+				} else {
+					$('#videoSelect').val(weburlisfirst);
+				}
 			} else {
 				$("#searchbyweburl").val("");
-			}
-			if (weburlisfirst === true){
-				$('#searchbyweburl').val(files[0][0]);
-			} else {
-				$('#videoSelect').val(weburlisfirst);
 			}
 		});
 	}
@@ -114,6 +115,7 @@
 
 // edit the selected video
 function loadcatg_p1(){
+	$("#edit_category").empty();
 	window.pywebview.api.get_categories().then(function(response){
 		categories = response["categories"];
 		if (Object.keys(categories).length > 0) {
@@ -124,11 +126,17 @@ function loadcatg_p1(){
 	});
 }
 function loadpage1(){
+	$(".success-message").css("display", "none");
 	const weburl = $("#searchbyweburl").val();
 	loadcatg_p1();
 	window.pywebview.api.searchinall(weburl).then(function(response){
 		file = response["file"];
 		echostuff(file);
+		if (!file){
+			$(".page2").hide();
+			$(".page1").show();
+			return;
+		};
 		$(".page1").hide();
 		$(".page2").show();
 		$("#theweburl").val(file[0]);
@@ -144,8 +152,30 @@ function loadpage1(){
 	});
 }
 
+function editvid(){
+	const weburl = $("#theweburl").val();
+	const name = $(".editing_name").val();
+	const about = $(".editing_about").val();
+	const category = $(".editing_category").val();
+	const filetype = $("input[name='ftype']:checked").val();
+	const visibility = $("input[name='visibility']:checked").val();
+	window.pywebview.api.editvid(weburl, name, about, category, filetype, visibility).then(function(response){
+		echostuff(response);
+		if (response.startsWith("1success")){
+			$(".page2").hide();
+			$(".page1").show();
+			$(".success-message").css("display", "block");
+		}
+	});
+}
 
-
+// Handle focus query parameter on load
+const urlParams = new URLSearchParams(window.location.search);
+const focusvid = urlParams.get('focus');
+if (focusvid) {
+	$('#searchbyweburl').val(focusvid);
+	loadpage1();
+}
 function echostuff(stuff){
 	window.pywebview.api.echostuff(stuff);
 }

@@ -15,24 +15,33 @@
 			<div class="uk-width-expand breadcrumbs">
 				<!--  -->
 			</div>
+			<br>
 			<div class="uk-flex-right">
-			<div class="uk-inline sort-button" style="display:none;">
-				<a class="uk-button uk-button-default" type="button">sort by:</a>
-				<div uk-dropdown="mode: click" class="uk-child-width-1-1">
-					<ul class="uk-nav uk-dropdown-nav">
-						<li uk-filter-control="sort: data-name"><a>a to z</a></li>
-						<li uk-filter-control="sort: data-name; order: desc"><a>z to a</a></li>
-						<li uk-filter-control="sort: data-size"><a>small to big</a></li>
-						<li uk-filter-control="sort: data-size; order: desc"><a>big to small</a></li>
-						<li uk-filter-control="sort: data-time"><a>old to new</a></li>
-						<li uk-filter-control="sort: data-time; order: desc"><a>new to old</a></li>
-					</ul>
-					
+				<!-- add search -->
+				<div>
+					<img style="width:32px;height:32px;border-radius:20%;margin-right:25px" src="/stuff/reload.png" alt="reload"
+					onclick="pywebview.api.get_categories(true).then(() => { 
+								pywebview.api.get_files('',true).then(() => {
+									window.location.reload();
+								})
+							});">
+				</div>
+				<div class="uk-inline sort-button" style="display:none;">
+					<a class="uk-button uk-button-default" type="button">sort by:</a>
+					<div uk-dropdown="mode: click" class="uk-child-width-1-1">
+						<ul class="uk-nav uk-dropdown-nav">
+							<li uk-filter-control="sort: data-name"><a>a to z</a></li>
+							<li uk-filter-control="sort: data-name; order: desc"><a>z to a</a></li>
+							<li uk-filter-control="sort: data-size"><a>small to big</a></li>
+							<li uk-filter-control="sort: data-size; order: desc"><a>big to small</a></li>
+							<li uk-filter-control="sort: data-time"><a>old to new</a></li>
+							<li uk-filter-control="sort: data-time; order: desc"><a>new to old</a></li>
+						</ul>
+					</div>
 				</div>
 			</div>
-			</div>
 		</div>
-		<div class="uk-section" style="margin-top:-50px;">
+		<div class="uk-section" style="padding-top:0px !important;">
 			<div class="uk-container">
 			<ul class="uk-grid-match uk-child-width-1-4@l uk-child-width-1-3@m uk-child-width-1-2@s uk-child-width-1-1 js-filter catg-files" uk-grid>
 				<!--  -->
@@ -270,7 +279,7 @@ if (_c == null) {
 			//echostuff(splitted_catg);
 			if (files.length > 0 ) {
 				files.forEach(file => {
-					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
+					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;width:265px;"></li>');
 					li.attr("data-name", file[1]);
 					li.attr("data-size", file[3]);
 					li.attr("data-time", file[0]);
@@ -282,13 +291,29 @@ if (_c == null) {
 					// } else if (file.type === "text") {
 					// 	imgSrc = "/content_pages/txt.jpg";
 					// }
-					li.append(`<img id="weburl-`+file[0]+`" style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
+					li.append(`<div style="position: relative; display: inline-block;">
+								<img id="weburl-`+file[0]+`" style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">
+								<div class="overlayfor_img2" style="position: absolute; top: 0; left: 0; width: 225px; height: 225px; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
+									<div style="position: absolute; bottom: 60px; left: 90px; width: auto; height: auto;background-color:black;opacity:0.75;">
+										<a style="color:yellow !important;" href="/index.html?i=edit&focus=${file[0]}">edit file</a>
+									</div>
+								</div>
+							</div>
+							`);
 					if (file[4] === "video") {
 						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" onclick="vlcopen('${file[0]}');" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${file[1]}</a>`);
 					} else {
 						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;" target="_blank" href="https://turkuazz.vip/player?vid=${file[0]}">${file[1]}</a>`);
 					}
 					catgFiles.append(li);
+				});
+				document.querySelectorAll('.overlayfor_img2').forEach(item => {
+					item.addEventListener('mouseover', event => {
+						item.style.opacity = '1';
+					});
+					item.addEventListener('mouseout', event => {
+						item.style.opacity = '0';
+					});
 				});
 			} else {
 				window.pywebview.api.get_categories_list(_c).then( function(response){

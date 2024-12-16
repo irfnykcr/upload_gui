@@ -32,7 +32,7 @@ CATEGORIES = []
 CATEGORIES_LIST = []
 FILES_LIST = []
 CURRENT_VIDEO = None
-width = 1200
+width = 1385
 height = 860
 settings = {
   'ALLOW_DOWNLOADS': False,
@@ -88,28 +88,33 @@ def play(weburl:str):
 		print("already playing a vid")
 		return False
 	CURRENT_VIDEO = weburl
-	def abort_vlc():
+	def abort_vlc(proc_vlc=None):
+		if proc_vlc != None:
+			proc_vlc.kill()
+		global CURRENT_VIDEO
 		CURRENT_VIDEO = None
+		print(f"aborted: abort_vlc() w-kill/{proc_vlc!=None}")
 		return "aborted"
 	try:
 		r = post("https://api.turkuazz.vip/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		r = int(eval(r.decode("utf-8")))
 	except:
 		print("failed to get currentsec")
+		return abort_vlc(None)
 		r = 0
 	# print(r,VLC_PORT,VLC_HTTP_PASS,url)
 	url = CDN_URL + weburl
-	
-	command = [VLC_PATH, 
+
+	command = [VLC_PATH,
 		"--intf", "qt",
-		"--start-time="+str(r), 
+		"--start-time="+str(r),
 		"--extraintf", "http",
 		"--http-port", str(VLC_PORT),
 		"--http-password", str(VLC_HTTP_PASS),
 		str(url)
 	]
 
-	proc = Popen(command)#, stdout=PIPE, stderr=PIPE)
+	proc_vlc = Popen(command)#, stdout=PIPE, stderr=PIPE)
 	duration = -1
 	retry = 0
 	def get_info():
@@ -124,7 +129,7 @@ def play(weburl:str):
 		if data == None:
 			if retry > 10:
 				print("failed to get duration")
-				return abort_vlc()
+				return abort_vlc(proc_vlc)
 			retry += 1
 			sleep(0.05)
 			continue
@@ -143,7 +148,7 @@ def play(weburl:str):
 		if data == None:
 			print(f"{currenttime}/{duration}, exit")
 			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":currenttime,"state":"update_time"},"update_time")).start()
-			return abort_vlc()
+			return abort_vlc(proc_vlc)
 		state = data['state']
 		ttime = data['time']
 		if state == "stopped":
@@ -161,14 +166,14 @@ def play(weburl:str):
 			print("finished but didnt update. will worked on it later.")
 		else:
 			Thread(target=make_request, args=("https://api.turkuazz.vip/v1/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
-		
+
 		currentstate = state
 		if currentstate != "ended":
-			currenttime = ttime 
+			currenttime = ttime
 		print(f"{currenttime}/{duration}, {currentstate}")
-	return abort_vlc()
+	return abort_vlc(proc_vlc)
 class Api:
-	
+
 	def echostuff(self,*msg):
 		print([i for i in msg])
 		return True
@@ -186,15 +191,15 @@ class Api:
 			OPEN_DIALOG, allow_multiple=True, file_types=('All files (*.*)',)
 		)
 		return {'files': result}
-	
+
 	def activities_finish_video(self, weburl):
 		r = post("https://api.turkuazz.vip/v1/activity/finish_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		return str(r.decode("utf-8"))
-	
+
 	def activities_back_video(self, weburl):
 		r = post("https://api.turkuazz.vip/v1/activity/back_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		return str(r.decode("utf-8"))
-	
+
 	def activities_remove_video(self, weburl):
 		r = post("https://api.turkuazz.vip/v1/activity/remove_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		r = r.decode("utf-8")
@@ -203,9 +208,26 @@ class Api:
 	def get_lastactivity(self):
 		r = post("https://api.turkuazz.vip/v1/activity/lastactivies", headers={"api-key":API_KEY}).content
 		return str(r.decode("utf-8"))
-	
-	def get_categories(self):
+
+	def get_categories(self, remove_cache:bool=False, depth:int=3):
+		global CATEGORIES_LIST
 		global CATEGORIES
+		if remove_cache:
+			CATEGORIES_LIST = []
+			CATEGORIES = []
+			print("get_categories cache cleared")
+		if CATEGORIES_LIST == []:
+			r = post("https://api.turkuazz.vip/v1/upload/get_categories", headers={"api-key":API_KEY})
+			CATEGORIES_LIST = r.json()
+			CATEGORIES = []
+			for i in CATEGORIES_LIST:
+				CATEGORIES.append(f"{i}/")
+				for k in CATEGORIES_LIST[i]:
+					CATEGORIES.append(f"{i}/{k}/")
+					for l in CATEGORIES_LIST[i][k]:
+						CATEGORIES.append(f"{i}/{k}/{l}/")
+		if depth != 3:
+			return {'categories': [i for i in CATEGORIES if i.count("/") <= depth]}
 		return {'categories': CATEGORIES}
 	def get_categories_list(self, catg:str=""):
 		global CATEGORIES_LIST
@@ -220,8 +242,11 @@ class Api:
 			return {'categories': [i for i in CATEGORIES_LIST[catg[0]][catg[1]]]}
 		else:
 			return {'categories': []}
-	def get_files(self, category:str=""):
+	def get_files(self, category:str="", remove_cache:bool=False):
 		global FILES_LIST
+		if remove_cache:
+			FILES_LIST = []
+			print("get_files cache cleared")
 		if FILES_LIST == []:
 			r:bytes = post("https://api.turkuazz.vip/v1/files/getfiles", headers={"api-key":API_KEY}).content
 			FILES_LIST = eval(r.decode("utf-8"))
@@ -254,6 +279,69 @@ class Api:
 			if i[0] == weburl:
 				return {'file': i}
 		return {'file': None}
+
+	def editvid(self, weburl, name, about, category, filetype, visibility):
+		global ACCEPTED_CHR
+		global CATEGORIES
+		global API_KEY
+
+		for chr in about:
+			if chr not in ACCEPTED_CHR:
+				return f"about_char: `{chr}` not accepted"
+		if len(about) > 500:
+			return "about is too long > 500"
+		
+		private = 1 if visibility == "private" else 0
+		
+		if category[-1] != "/":
+			category = category + "/"
+		if category not in CATEGORIES:
+			return "category not accepted - not found"
+		
+		for chr in name:
+			if chr not in ACCEPTED_CHR:
+				return f"name_char: `{chr}` not accepted"
+		len_name = len(name)
+		if (len_name < 2) or (len_name > 100):
+			return "name is too short or too long (2-100)"
+		
+		if not (filetype == "photo" or filetype == "video" or filetype=="text"):
+			filetype = "other"
+		try:
+			weburl = int(weburl)
+		except:
+			return "weburl is not valid - must be int"
+		try:
+			r = post("https://api.turkuazz.vip/v1/files/editfile", headers={"api-key":API_KEY}, json={"weburl":weburl,"name":name,"about":about,"category":category,"filetype":filetype,"private":private}).content
+			if r == b"ok":
+				self.get_files("", True)
+				self.get_categories(True)
+				return f"1success-{r.decode('utf-8')}"
+			else:
+				return f"failed to edit file - {r}"
+		except Exception as e:
+			return f"failed to edit file - {e}"
+	
+	def create_category(self, name:str, parent:str):
+		global API_KEY
+		for chr in name:
+			if chr not in ACCEPTED_CHR:
+				return f"name_char: `{chr}` not accepted"
+		len_name = len(name)
+		if (len_name < 2) or (len_name > 100):
+			return "name is too short or too long (2-100)"
+		try:
+			r = post("https://api.turkuazz.vip/v1/upload/create_category", headers={"api-key": API_KEY}, json={"name":name,"parent":parent}).content
+			if r == b"ok":
+				self.get_categories(True)
+				return f"1success-{r.decode('utf-8')}"
+			else:
+				return f"failed to create category - {r}"
+		except Exception as e:
+			return f"failed to create category - {e}"
+		
+
+
 	def download(self, weburl:str):
 		global WINDOW
 		global CMD_DOWNLOAD
@@ -274,15 +362,17 @@ class Api:
 			str(OUTDIR)
 		]
 		changeconsole(command)
-		proc = Popen(command, stdout=PIPE, text=True, bufsize=1)
+		proc_download = Popen(command, stdout=PIPE, text=True, bufsize=1)
 		while True:
-			line = proc.stdout.readline()
+			line = proc_download.stdout.readline()
 			changeconsole(line.strip())
 			if not line:
 				break
 		changeconsole("you can close the window now.")
+		self.get_files("", True)
+		self.get_categories(True)
 		return abort({'status': 'success'})
-	
+
 	def upload(self, items):
 		global ACCEPTED_CHR
 		global VIDEO_EXT
@@ -306,7 +396,7 @@ class Api:
 		if len(about) > 500:
 			changeconsole("fail2")
 			return abort({'status': 'fail'})
-		
+
 		private = items[5]
 		private = 1 if private == "private" else 0
 
@@ -322,6 +412,7 @@ class Api:
 			changeconsole(f"now: {ffile}")
 			if autocheck:
 				fname = ffile.split("\\")[-1]
+				fname = ffile.split("/")[-1]
 				ext = "." + fname.split(".")[-1]
 				if ext in VIDEO_EXT:
 					ftype = "video"
@@ -347,25 +438,26 @@ class Api:
 				changeconsole("fail5")
 				return abort({'status': 'fail'})
 
-			if (ftype == "video") or (ftype == "image"):
-				random_name = fname + uuid4().hex[:5]
-				command = [PYTHON_VER,
-			   		"-u",
-					CMD_GEN,
-			   		str(ffile),
-					str(random_name),
-					str(ftype)
-				]
-				proc = Popen(command, stdout=PIPE, text=True, bufsize=1)
-				changeconsole(command)
-				while True:
-					line = proc.stdout.readline()
-					changeconsole(line.strip())
-					if not line:
-						break
-				changeconsole(f"generated random name. {random_name}")
-			changeconsole("thumbnail generated. uploading file..")
-	
+			# if (ftype == "video") or (ftype == "image"):
+			# 	random_name = fname + uuid4().hex[:5]
+			# 	command = [PYTHON_VER,
+			#    		"-u",
+			# 		CMD_GEN,
+			#    		str(ffile),
+			# 		str(random_name),
+			# 		str(ftype)
+			# 	]
+			# 	proc = Popen(command, stdout=PIPE, text=True, bufsize=1)
+			# 	changeconsole(command)
+			# 	while True:
+			# 		line = proc.stdout.readline()
+			# 		changeconsole(line.strip())
+			# 		if not line:
+			# 			break
+			# 	changeconsole(f"generated random name. {random_name}")
+			# changeconsole("thumbnail generated. uploading file..")
+			changeconsole("thumbnail not generated, will work on it later. uploading file..")
+
 			command = [PYTHON_VER,
 				"-u",
 				CMD_UPLOAD,
@@ -377,29 +469,23 @@ class Api:
 				str(private)
 			]
 			changeconsole(command)
-			proc = Popen(command, stdout=PIPE, text=True, bufsize=1)
+			proc_upload = Popen(command, stdout=PIPE, text=True, bufsize=1)
 			while True:
-				line = proc.stdout.readline()
+				line = proc_upload.stdout.readline()
 				changeconsole(line.strip())
 				if not line:
 					break
 			changeconsole(f"!!uploaded!! {fname}")
 		changeconsole("you can close the window now.")
+		self.get_files("", True)
+		self.get_categories(True)
 		return abort({'status': 'success'})
 	
 if __name__ == '__main__':
 	try:
-		r = post("https://api.turkuazz.vip/v1/upload/get_categories", headers={"api-key":API_KEY})
-		CATEGORIES_LIST = r.json()
-		CATEGORIES = []
-		for i in CATEGORIES_LIST:
-			CATEGORIES.append(f"{i}/")
-			for k in CATEGORIES_LIST[i]:
-				CATEGORIES.append(f"{i}/{k}/")
-				for l in CATEGORIES_LIST[i][k]:
-					CATEGORIES.append(f"{i}/{k}/{l}/")
 		api = Api()
 		api.get_files()
+		api.get_categories()
 		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=True, text_select=True, background_color="#181818")
 	except:

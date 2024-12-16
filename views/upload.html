@@ -98,7 +98,9 @@
 					}
 					
 					// echostuff(r);
-					fileschanged(r, r[0].split("\\").at(-1));
+					let fileinput_name = r[0].split("\\").at(-1);
+					fileinput_name = r[0].split("/").at(-1);
+					fileschanged(r, fileinput_name);
 				}
 			}
 		);
