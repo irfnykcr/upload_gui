@@ -7,6 +7,9 @@ from uuid import uuid4
 from requests import post
 from webview import OPEN_DIALOG, create_window, start, settings, FOLDER_DIALOG
 from os import getcwd
+from jellyfish import levenshtein_distance
+from difflib import SequenceMatcher
+from sys import argv
 
 CURRENT_PATH = getcwd()
 print(CURRENT_PATH)
@@ -78,6 +81,26 @@ def make_request(url:str, json:dict, msg:str):
 		print(f"{datetime.now()} // failed to make request:",msg,e)
 		return None
 
+def is_similar(a:str, b:str):
+	return (SequenceMatcher(None, a, b).ratio() - (levenshtein_distance(a,b)/max(len(a),len(b))))
+
+def search_func(search_key:str):
+	global FILES_LIST
+	global CATEGORIES_LIST
+	t = 0
+	search_key = search_key.lower()
+	searched = []
+	for i in FILES_LIST:
+		if search_key in i[1].lower() or search_key in i[2].lower() or search_key in i[5].lower():
+			searched.append(i)
+			continue
+		s1 = is_similar(search_key, i[1].lower())
+		s2 = is_similar(search_key, i[2].lower()) 
+		s3 = is_similar(search_key, i[5].lower())
+		if s1 > t or s2 > t or s3 > t:
+			print(s1,s2,s3, i)
+			searched.append(i)
+	return searched
 def play(weburl:str):
 	global VLC_PATH
 	global VLC_PORT
@@ -88,19 +111,22 @@ def play(weburl:str):
 		print("already playing a vid")
 		return False
 	CURRENT_VIDEO = weburl
-	def abort_vlc(proc_vlc=None):
+	def abort_vlc(proc_vlc=None, retry=False):
 		if proc_vlc != None:
 			proc_vlc.kill()
 		global CURRENT_VIDEO
 		CURRENT_VIDEO = None
 		print(f"aborted: abort_vlc() w-kill/{proc_vlc!=None}")
+		if retry != False:
+			print(f"aborted, retry={retry}")
+			return play(retry)
 		return "aborted"
 	try:
 		r = post("https://api.turkuazz.vip/v1/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
 		r = int(eval(r.decode("utf-8")))
 	except:
 		print("failed to get currentsec")
-		return abort_vlc(None)
+		return abort_vlc(None, weburl)
 		r = 0
 	# print(r,VLC_PORT,VLC_HTTP_PASS,url)
 	url = CDN_URL + weburl
@@ -192,16 +218,31 @@ class Api:
 		)
 		return {'files': result}
 
+	def isfirst_islast(self, weburl, category):
+		global FILES_LIST
+		try:
+			samectg = [i[0] for i in FILES_LIST if i[2] == category]
+			samectg.sort()
+			return (samectg[0] == weburl, samectg[-1] == weburl)
+		except:
+			return (False, False)
+
 	def activities_finish_video(self, weburl):
 		r = post("https://api.turkuazz.vip/v1/activity/finish_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		self.get_files("", True)
+		self.get_categories(True)
 		return str(r.decode("utf-8"))
 
 	def activities_back_video(self, weburl):
 		r = post("https://api.turkuazz.vip/v1/activity/back_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		self.get_files("", True)
+		self.get_categories(True)
 		return str(r.decode("utf-8"))
 
 	def activities_remove_video(self, weburl):
 		r = post("https://api.turkuazz.vip/v1/activity/remove_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		self.get_files("", True)
+		self.get_categories(True)
 		r = r.decode("utf-8")
 		return str(r)
 
@@ -230,6 +271,8 @@ class Api:
 			return {'categories': [i for i in CATEGORIES if i.count("/") <= depth]}
 		return {'categories': CATEGORIES}
 	def get_categories_list(self, catg:str=""):
+		if catg.startswith("search:"):
+			return False
 		global CATEGORIES_LIST
 		if catg == "":
 			return {'categories': CATEGORIES_LIST}
@@ -257,6 +300,10 @@ class Api:
 			f.sort(key=lambda x: x[7], reverse=True)
 			f = [[i[0],i[1],i[2],i[5]] for i in f][:15]
 			return str(f)
+		elif category.startswith("search:"):
+			search_key = category[7:]
+			print("searching", search_key)
+			return {'files': search_func(search_key)}
 		else:
 			if category[-1] != "/":
 				category = category + "/"
@@ -490,4 +537,14 @@ if __name__ == '__main__':
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=True, text_select=True, background_color="#181818")
 	except:
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=True, text_select=False, background_color="#181818")
-	start(http_port=PORT, gui="gtk", debug=True)
+	try:
+		arg1 = argv[1]
+		if arg1 == "debug":
+			start(http_port=PORT, gui="gtk", debug=True)
+		else:
+			start(http_port=PORT, gui="gtk", debug=False)
+	except IndexError as e:
+		start(http_port=PORT, gui="gtk", debug=False)
+	except Exception as e:
+		print(e)
+	

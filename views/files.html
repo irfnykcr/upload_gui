@@ -17,15 +17,26 @@
 			</div>
 			<br>
 			<div class="uk-flex-right">
-				<!-- add search -->
-				<div>
-					<img style="width:32px;height:32px;border-radius:20%;margin-right:25px" src="/stuff/reload.png" alt="reload"
-					onclick="pywebview.api.get_categories(true).then(() => { 
-								pywebview.api.get_files('',true).then(() => {
-									window.location.reload();
-								})
-							});">
+				<div style="display:flex;flex-direction: row;">
+					<div>
+						<a class="uk-navbar-toggle" uk-search-icon uk-height-match=".reload-img" style="min-height:32px;min-width:32px;margin-right:16px;"></a>
+						<div class="uk-drop" uk-drop="mode: click; pos: left-center; offset: 0">
+							<form class="uk-search uk-search-navbar uk-width-1-1"
+							onsubmit='window.location.href="/index.html?i=files&c=search:" + document.getElementById("searchmis").value; return false;'>
+								<input class="uk-search-input" id="searchmis" placeholder="Search" aria-label="Search" autofocus>
+							</form>
+						</div>
+					</div>
+					<div>
+						<img class="reload-img" style="width:32px;height:32px;border-radius:20%;margin-right:25px" src="/stuff/reload.png" alt="reload"
+							onclick="pywebview.api.get_categories(true).then(() => { 
+									pywebview.api.get_files('',true).then(() => {
+										window.location.reload();
+									})
+								});">
+					</div>
 				</div>
+				
 				<div class="uk-inline sort-button" style="display:none;">
 					<a class="uk-button uk-button-default" type="button">sort by:</a>
 					<div uk-dropdown="mode: click" class="uk-child-width-1-1">
@@ -138,20 +149,20 @@ const _urlParamss = new URLSearchParams(window.location.search);
 const _c = _urlParamss.get('c');
 if (_c == null) {
 	window.pywebview.api.get_lastactivity().then(
-		function(response){
+		async function(response){
 			response = response.replace(/'/g, '"');
 			response = JSON.parse(response);
-			lastact = `<h1 style="margin-bottom:95px; width:100%;">last activity</h1>
+			var lastact = `<h1 style="margin-bottom:95px; width:100%;">last activity</h1>
 						<div style="max-height: 600px; overflow-y: auto;min-width:100%; margin-top:-100px;">
 							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">
 								<li style="margin-right:-80px;">
 								</li>`; // to fix visual bug
-			response.forEach(element => {
-				//echostuff(element);
+			for (const element of response) {
 				weburl = element[0];
 				name = element[1].replace("*", "'");
-				about = element[2];
+				about = element[2]; 
 				catg = element[3];
+				let isfirstlast = await window.pywebview.api.isfirst_islast(weburl,catg);
 				lastact += `<li>
 								<div>
 									<div style="position: relative; display: inline-block;">
@@ -162,22 +173,27 @@ if (_c == null) {
 											</div>
 											<div style="position: absolute; bottom: 10px; left: 10px; width: 40px; height: auto;" onclick="leftImageFunction('${weburl}')">
 												<img src="/stuff/x.png" style="width:64px;height:auto;">
-											</div>
-											<div style="position: absolute; bottom: 10px; right: 50px; width: 40px; height: auto;" onclick="middleImageFunction('${weburl}')">
-												<img src="/stuff/finish-r.png" style="width:64px;height:auto;">
-											</div>
-											<div style="position: absolute; bottom: 10px; right: 10px; width: 40px; height: auto;" onclick="rightImageFunction('${weburl}')">
-												<img src="/stuff/finish.png" style="width:64px;height:auto;">
-											</div>
-										</div>
-									</div>
-									<div style="display:flex;justify-content:center;">
-										<a onclick="vlcopen('${weburl}');" oncontextmenu="copyTextToClipboard('${weburl}')">`+name+`</a>
-										<p>`+about+`</p>
-									</div>
-								</div>
-							</li>`;
-			});
+											</div>`;
+				if (!isfirstlast[0]){
+					lastact+=`<div style="position: absolute; bottom: 10px; right: 50px; width: 40px; height: auto;" onclick="middleImageFunction('${weburl}')">
+							<img src="/stuff/finish-r.png" style="width:64px;height:auto;">
+							</div>`
+				}
+				if(!isfirstlast[1]){
+					lastact+=`<div style="position: absolute; bottom: 10px; right: 10px; width: 40px; height: auto;" onclick="rightImageFunction('${weburl}')">
+								<img src="/stuff/finish.png" style="width:64px;height:auto;">
+							</div>`
+				}
+				lastact+=`</div>
+						</div>
+						<div style="display:flex;justify-content:center;flex-direction:column;">
+							<a onclick="vlcopen('${weburl}');" oncontextmenu="copyTextToClipboard('${weburl}')">`+name+`</a>
+							<p>`+about+`</p>
+						</div>
+					</div>
+				</li>`;
+			}
+
 			lastact += `</ul></div>`;
 			catgFiles.append(lastact);
 			document.querySelectorAll('.overlayfor_img').forEach(item => {
@@ -188,6 +204,7 @@ if (_c == null) {
 					item.style.opacity = '0';
 				});
 			});
+
 		}
 	);
 
@@ -219,7 +236,7 @@ if (_c == null) {
 											</div>
 										</div>
 									</div>
-									<div style="display:flex;justify-content:center;">
+									<div style="display:flex;justify-content:center;flex-direction:column;">
 										<a onclick="vlcopen('${weburl}');" oncontextmenu="copyTextToClipboard('${weburl}')">`+name+`</a>
 										<p>`+about+`</p>
 									</div>
@@ -244,17 +261,20 @@ if (_c == null) {
 } else {
 	$(".sort-button").css("display", "block");
 	const splitted_catg = _c.split("/");
+	echostuff("got category: " + _c);
 	window.pywebview.api.get_categories_list(_c).then( function(response){
-		categories = response["categories"];
-		if (Object.keys(categories).length > 0) {
-			categories.forEach(ctg => {
-				let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
-				let goto = (_c.endsWith("/") ? _c.slice(0, -1) : _c) + "/" + ctg;
-				let imgSrc = "/stuff/folder.png";
-				li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
-				li.append(`<a href="/index.html?i=files&c=${goto}" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${ctg}</a>`);
-				catgFiles.append(li);
-			});
+		if (response != false) {
+			categories = response["categories"];
+			if (Object.keys(categories).length > 0) {
+				categories.forEach(ctg => {
+					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
+					let goto = (_c.endsWith("/") ? _c.slice(0, -1) : _c) + "/" + ctg;
+					let imgSrc = "/stuff/folder.png";
+					li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
+					li.append(`<a href="/index.html?i=files&c=${goto}" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${ctg}</a>`);
+					catgFiles.append(li);
+				});
+			}
 		}
 	});
 	if (_c != null) {
@@ -356,7 +376,6 @@ function rightImageFunction(weburl){
 	);
 }
 
-
 function vlcopen(vid) {
 	window.pywebview.api.openvlc(vid).then(
 	function(response){
@@ -388,7 +407,6 @@ if (document.cookie.indexOf("sent=") == -1) {
 			box-shadow: 0 0 5px 3px rgba(255, 255, 0, 0.6);
 		}
 	}
-
 
 </style>
 <script>
