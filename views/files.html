@@ -144,7 +144,143 @@ window.pywebview.api.get_categories_list().then(
 		}
 	}
 );
+function createSpinner(color=0){
+	const spinner = document.createElement("div");
+	spinner.classList.add("spinner-element");
+	spinner.style.position = "absolute";
+	spinner.style.top = "50%";
+	spinner.style.left = "50%";
+	spinner.style.marginLeft = "-25px";
+	spinner.style.marginTop = "-25px";
+	spinner.style.display = "flex";
+	spinner.style.width = "50px";
+	spinner.style.height = "50px";
+	spinner.style.border = "4px solid rgba(255, 255, 255, 0.5)";
+	spinner.style.borderTop = "4px solid white";
+	spinner.style.borderRadius = "50%";
+	spinner.style.animation = "spin 1s linear infinite";
+	spinner.style.zIndex = "5";
+	if (color == 1){
+		spinner.style.border = "4px solid rgba(0, 0, 0, 0.5)";
+		spinner.style.borderTop = "4px solid black";
+		spinner.style.borderRadius = "50%";
+		spinner.style.color = "black";
+	}
+	return spinner;
+}
 
+function setGif(item, weburl, loadFailed, overlay, apikey, type) {
+	if (type != "still"){
+		type="gif"
+	}
+	overlay.style.opacity = '1';
+	overlay.style.visibility = 'visible';
+	if (!loadFailed){
+		const imgSrc = "https://api.turkuazz.vip/v1/getimage?api-key="+apikey+"&weburl=" + weburl + "&type="+type;
+		const rect = item.getBoundingClientRect();
+
+		const spinner = createSpinner();
+		
+		const container = item.parentElement;
+		container.appendChild(spinner);
+
+		const img = new Image();
+		img.src = imgSrc;
+
+		img.onload = function () {
+			item.src = img.src;
+			container.removeChild(spinner);
+		};
+	}
+}
+function displayImages(data, apikey,cached=false) {
+	if (cached) {
+		const weburl = data[0]
+		const blob = data[1]
+		const item = document.querySelector(`[data-overlay="${weburl}"]`);
+		
+		if (item) {
+			item.src = blob;
+			item.loadFailed = false;
+			item.onerror = () => { item.loadFailed = true; item.src = "/stuff/best.jpeg"; };
+		}
+
+		const spinner = document.querySelector('.spinner-element');
+		if (spinner) {
+			spinner.parentElement.removeChild(spinner);
+		}
+		return
+	}
+	for (const [weburl, imgSrc] of Object.entries(data)) {
+		const item = document.querySelector(`[data-overlay="${weburl}"]`);
+		if (item) {
+			item.src = imgSrc;
+			item.loadFailed = false;
+			item.onerror = () => { item.loadFailed = true; item.src = "/stuff/best.jpeg"; };
+		}
+		// delete spinner
+		const spinner = document.querySelector('.spinner-element');
+		if (spinner) {
+			spinner.parentElement.removeChild(spinner);
+		}
+	}
+}
+
+function getcookie(name) {
+	var value = "; " + document.cookie;
+	var parts = value.split("; " + name + "=");
+	if (parts.length == 2) return parts.pop().split(";").shift();
+}
+function fetchImages(weburls, type, apikey){
+
+	for (const weburl of weburls) {
+		const cacheKey = `${weburl}_${type}`;
+		const blob = window.sessionStorage.getItem(cacheKey);
+		if (blob) {
+			console.log(`Using cached data for ${weburl}: ${blob}`);
+			displayImages([weburl,blob], apikey, true);  // Function to display images, cached=true
+			weburls = weburls.filter(url => url !== weburl);  // Remove cached weburl from weburls array
+		}
+	}
+	if (weburls.length === 0) {
+		return;
+	}
+	fetch("https://api.turkuazz.vip/v1/getimages?weburls="+weburls.join(",")+"&type="+type, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'api-key': apikey
+		}
+		})
+	.then(response => response.arrayBuffer())
+	.then(buffer => {
+		const results = {};
+		let offset = 0;
+		let n = 0;
+		while (offset < buffer.byteLength) {
+			// Read weburl ID (8 bytes)
+			const idBytes = new Uint8Array(buffer.slice(offset, offset + 8));
+			const weburl = new DataView(idBytes.buffer).getBigUint64(0).toString();
+
+			offset += 8;
+
+			// Read content length (4 bytes)
+			const lengthBytes = new Uint8Array(buffer.slice(offset, offset + 4));
+			const contentLength = new DataView(lengthBytes.buffer).getUint32(0);
+			offset += 4;
+
+			// Read content
+			const content = buffer.slice(offset, offset + contentLength);
+			const blob = new Blob([content], {type: 'image/jpeg'});
+			const imgUrl = URL.createObjectURL(blob);
+			results[weburl] = imgUrl;
+			window.sessionStorage.setItem(`${weburl}_${type}`, imgUrl);
+			offset += contentLength;
+		}
+        // Display the images
+        displayImages(results, apikey);
+	})
+}
 const _urlParamss = new URLSearchParams(window.location.search);
 const _c = _urlParamss.get('c');
 if (_c == null) {
@@ -152,23 +288,24 @@ if (_c == null) {
 		async function(response){
 			response = response.replace(/'/g, '"');
 			response = JSON.parse(response);
+			const apikey = response.shift();
 			var lastact = `<h1 style="margin-bottom:95px; width:100%;">last activity</h1>
 						<div style="max-height: 600px; overflow-y: auto;min-width:100%; margin-top:-100px;">
 							<ul class="uk-list uk-flex uk-flex-row uk-grid-divider">
 								<li style="margin-right:-80px;">
 								</li>`; // to fix visual bug
 			for (const element of response) {
-				weburl = element[0];
-				name = element[1].replace("*", "'");
-				about = element[2]; 
-				catg = element[3];
-				let isfirstlast = await window.pywebview.api.isfirst_islast(weburl,catg);
+				const weburl = element[0];
+				const name = element[1].replace("*", "'");
+				const about = element[2]; 
+				const catg = element[3];
+				const isfirstlast = await window.pywebview.api.isfirst_islast(weburl,catg);
 				lastact += `<li>
 								<div>
 									<div style="position: relative; display: inline-block;">
-										<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
-										<div class="overlayfor_img" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
-											<div style="position: absolute; bottom: 75px; left: 30px; width: auto; height: auto;background-color:black;opacity:0.75;">
+										<img style="max-width:300px!important; min-width:225px!important; max-height:300px!important; min-height:225px!important; height:auto!important;" src="/stuff/best.jpeg" class="activater_img lazyload" data-overlay="${weburl}">
+										<div class="overlayfor_img-${weburl}" style="z-index:10;position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
+											<div style="position: absolute; bottom:50%;left:50%;transform:translate(-50%, -50%); width: auto; height: auto;background-color:black;opacity:0.75; pointer-events: auto;">
 												<a style="color:yellow !important;" href="/index.html?i=files&c=${catg}&focus=${weburl}">open category</a>
 											</div>
 											<div style="position: absolute; bottom: 10px; left: 10px; width: 40px; height: auto;" onclick="leftImageFunction('${weburl}')">
@@ -196,15 +333,31 @@ if (_c == null) {
 
 			lastact += `</ul></div>`;
 			catgFiles.append(lastact);
-			document.querySelectorAll('.overlayfor_img').forEach(item => {
-				item.addEventListener('mouseover', event => {
-					item.style.opacity = '1';
+			let weburls = response.map(e => e[0]);
+			// create spinner
+			document.querySelectorAll('.activater_img').forEach(item => {
+				const spinner = createSpinner(1);
+				const container = item.parentElement;
+				container.appendChild(spinner);
+			});
+			weburls.forEach(weburl => {
+				const item = document.querySelector(`[data-overlay="${weburl}"]`);
+				const overlayClass = item.classList.contains('activater_img') ? 'overlayfor_img-' : (item.classList.contains('activater_img2') ? 'overlayfor_img2-' : 'overlayfor_img3-');
+				const overlay = document.querySelector('.' + overlayClass + weburl);
+				overlay.addEventListener('mouseover', event => {
+					setGif(item, weburl, item.loadFailed, overlay, apikey)
 				});
-				item.addEventListener('mouseout', event => {
-					item.style.opacity = '0';
+				overlay.addEventListener('mouseout', event => {
+					overlay.style.opacity = '0';
+					if (!item.loadFailed){
+						item.src = blob;
+					}
 				});
 			});
-
+			
+			fetchImages(weburls, 'still', apikey);
+			
+			
 		}
 	);
 
@@ -219,19 +372,19 @@ if (_c == null) {
 								</li>`; // to fix visual bug
 			response = response.replace(/'/g, '"');
 			response = JSON.parse(response);
-			console.log(response);
-			response.forEach(element => {
+			const apikey = response.shift();
+			for (const element of response) {
 				//echostuff(element);
-				weburl = element[0];
-				name = element[1];
-				catg = element[2];
-				about = element[3];
+				const weburl = element[0];
+				const name = element[1];
+				const catg = element[2];
+				const about = element[3];
 				lastupl += `<li>
 								<div>
 									<div style="position: relative; display: inline-block;">
-										<img style="max-height:150px !important;min-height:75px !important; min-width:75px !important;max-width:150px !important;" src="/stuff/best.jpeg">
-										<div class="overlayfor_img" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
-											<div style="position: absolute; bottom: 60px; left: 30px; width: auto; height: auto;background-color:black;opacity:0.75;">
+										<img style="max-width:300px!important; min-width:225px!important; max-height:300px!important; min-height:225px!important; height:auto!important;" src="/stuff/best.jpeg" class="activater_img2" data-overlay="${weburl}">
+										<div class="overlayfor_img2-${weburl} lazyload" style="z-index:10;position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
+											<div style="position: absolute; bottom:50%;left:50%;transform:translate(-50%, -50%); width: auto; height: auto;background-color:black;opacity:0.75; pointer-events: auto;">
 												<a style="color:yellow !important;" href="/index.html?i=files&c=${catg}&focus=${weburl}">open category</a>
 											</div>
 										</div>
@@ -242,17 +395,32 @@ if (_c == null) {
 									</div>
 								</div>
 							</li>`;
-			});
+			};
 			lastupl += `</ul></div>`;
 			uploadedFiles.append(lastupl);
-			document.querySelectorAll('.overlayfor_img').forEach(item => {
-				item.addEventListener('mouseover', event => {
-					item.style.opacity = '1';
+			// create spinner
+			document.querySelectorAll('.activater_img2').forEach(item => {
+				const spinner = createSpinner(1);
+				const container = item.parentElement;
+				container.appendChild(spinner);
+			});
+			let weburls = response.map(e => e[0]);
+			console.log("weburl", weburls)
+			weburls.forEach(weburl => {
+				const item = document.querySelector(`[data-overlay="${weburl}"]`);
+				const overlayClass = item.classList.contains('activater_img') ? 'overlayfor_img-' : (item.classList.contains('activater_img2') ? 'overlayfor_img2-' : 'overlayfor_img3-');
+				const overlay = document.querySelector('.' + overlayClass + weburl);
+				overlay.addEventListener('mouseover', event => {
+					setGif(item, weburl, item.loadFailed, overlay, apikey)
 				});
-				item.addEventListener('mouseout', event => {
-					item.style.opacity = '0';
+				overlay.addEventListener('mouseout', event => {
+					overlay.style.opacity = '0';
+					if (!item.loadFailed){
+						item.src = blob;
+					}
 				});
 			});
+			fetchImages(weburls, 'still', apikey);
 		}
 	);
 	
@@ -283,6 +451,7 @@ if (_c == null) {
 		).then(function(response) {
 			const target_dir = $(".js-filter");
 			const files = response["files"];
+			const apikey = response["apikey"];
 			//there should be breadcrumbs and catg-files
 			const breadcrumbs = $(".breadcrumbs");
 			breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}">${splitted_catg[0]}</a>`);
@@ -299,26 +468,19 @@ if (_c == null) {
 			//echostuff(splitted_catg);
 			if (files.length > 0 ) {
 				files.forEach(file => {
-					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;width:265px;"></li>');
+					let li = $('<li></li>');
 					li.attr("data-name", file[1]);
 					li.attr("data-size", file[3]);
 					li.attr("data-time", file[0]);
-					let imgSrc = "/stuff/logo_lowq.jpg";
-					// if (file.type === "video") {
-					// 	imgSrc = file.img ? `/images_vids/${file.id}/1.webp` : "/content_player/best.jpeg";
-					// } else if (file.type === "photo") {
-					// 	imgSrc = "/content_pages/foti.jpg";
-					// } else if (file.type === "text") {
-					// 	imgSrc = "/content_pages/txt.jpg";
-					// }
+					weburl = file[0];
 					li.append(`<div style="position: relative; display: inline-block;">
-								<img id="weburl-`+file[0]+`" style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">
-								<div class="overlayfor_img2" style="position: absolute; top: 0; left: 0; width: 225px; height: 225px; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
-									<div style="position: absolute; bottom: 60px; left: 90px; width: auto; height: auto;background-color:black;opacity:0.75;">
+								<img id="weburl-`+file[0]+`" src="/stuff/best.jpeg" class="activater_img3 lazyload" data-overlay="${weburl}">
+								<div class="overlayfor_img3-${weburl}" style="z-index:10;position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
+									<div style="position: absolute; bottom:50%;left:50%;transform:translate(-50%, -50%); width: auto; height: auto;background-color:black;opacity:0.75; pointer-events: auto;">
 										<a style="color:yellow !important;" href="/index.html?i=edit&focus=${file[0]}">edit file</a>
 									</div>
 								</div>
-							</div>
+							   </div>
 							`);
 					if (file[4] === "video") {
 						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" onclick="vlcopen('${file[0]}');" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${file[1]}</a>`);
@@ -327,14 +489,39 @@ if (_c == null) {
 					}
 					catgFiles.append(li);
 				});
-				document.querySelectorAll('.overlayfor_img2').forEach(item => {
-					item.addEventListener('mouseover', event => {
-						item.style.opacity = '1';
+				document.querySelectorAll('.activater_img3').forEach(item => {
+					const spinner = createSpinner(1);
+					const container = item.parentElement;
+					container.appendChild(spinner);
+				});
+
+				let weburls3 = [];
+				document.querySelectorAll('.activater_img3').forEach(item => {
+					weburls3.push(item.getAttribute('data-overlay'));
+				});
+				weburls3.forEach(weburl => {
+					const item = document.querySelector(`[data-overlay="${weburl}"]`);
+					const overlayClass = item.classList.contains('activater_img') ? 'overlayfor_img-' : (item.classList.contains('activater_img2') ? 'overlayfor_img2-' : 'overlayfor_img3-');
+					const overlay = document.querySelector('.' + overlayClass + weburl);
+					overlay.addEventListener('mouseover', event => {
+						setGif(item, weburl, item.loadFailed, overlay, apikey)
 					});
-					item.addEventListener('mouseout', event => {
-						item.style.opacity = '0';
+					overlay.addEventListener('mouseout', event => {
+						overlay.style.opacity = '0';
+						if (!item.loadFailed){
+							item.src = blob;
+						}
 					});
 				});
+				const per_numberofimg = 5
+				for (let i = 0; i < weburls3.length; i += per_numberofimg) {
+					const chunk = weburls3.slice(i, i + per_numberofimg)
+					fetchImages(chunk, 'still', apikey)
+					let checkingimg = document.getElementById("weburl-"+chunk[0])
+					console.log("srcccc", checkingimg.src)
+					
+				}
+
 			} else {
 				window.pywebview.api.get_categories_list(_c).then( function(response){
 					if (Object.keys(response["categories"]).length < 1) {
@@ -390,6 +577,11 @@ if (document.cookie.indexOf("sent=") == -1) {
 
 </script>
 <style>
+	@keyframes spin {
+		0% { transform: rotate(0deg); }
+		100% { transform: rotate(360deg); }
+	}
+
 	.glow {
 		position: relative; /* Ensure the box-shadow applies to the content area only */
 		z-index: 1; /* Make sure the glow is above other elements */

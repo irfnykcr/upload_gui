@@ -3,14 +3,15 @@
 	"max_threads": 2,
 	"max_retry": 10,
 	"port": 8000,
-	"tmp_dir": "/home/user/upload_cli/outdir/tmpdir",
-	"outdir": "/home/user/upload_cli/outdir",
+	"tmp_dir": "/home/$user/upload_cli/outdir/tmpdir",
+	"outdir": "/home/$user/upload_cli/outdir",
 	"python": "python3.10",
-	"cmd_gen": "/home/user/upload_cli/py_files/generate_thumb.py",
-	"cmd_upload": "/home/user/upload_cli/py_files/upload.py",
-	"cmd_download": "/home/user/upload_cli/py_files/download.py",
+	"cmd_gen": "/home/$user/upload_cli/py_files/generate_thumb.py",
+	"cmd_upload": "/home/$user/upload_cli/py_files/upload.py",
+	"cmd_download": "/home/$user/upload_cli/py_files/download.py",
 	"vlc": "/snap/bin/vlc",
 	"vlc_port": 8092,
 	"vlc_http_pass": "w1Vam0l3chtgrRWP",
-	"cdn_url": "https://cdn.turkuazz.vip/video?vid="
+	"cdn_url": "https://cdn.turkuazz.vip/video?vid=",
+	"api_url": "https://api.turkuazz.vip/v1/"
 }
