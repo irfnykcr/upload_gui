@@ -4,6 +4,7 @@
 	<div class="content" style="display: flex; flex-direction: column; align-items: center; gap: 20px;"></div>
 		<div>
 			<p style="color: green !important; font-weight: bold; background-color: #e0ffe0; padding: 10px; border-radius: 5px; text-align: center; width: 100%;display:none" class="success-message">success</p>
+			<p style="color: red !important; font-weight: bold; background-color: #e0ffe0; padding: 10px; border-radius: 5px; text-align: center; width: 100%;display:none" class="error-message">error</p>
 			<div class="page1" style="display:flex;">
 				<div class="selectvid">
 					<label for="file">file:</label><br>
@@ -53,7 +54,9 @@
 					<br>
 	
 					<button onclick="editvid();" class="uk-button">edit</button>
+					
 				</div>
+				<button class="uk-button" style="margin-top:100px;" onclick="if(window.confirm('are you sure? video will be lost forever!')){remove_vid()}">remove the video</button>
 			</div>
 			
 		</div>
@@ -111,7 +114,18 @@
 	}
 
 
-
+function remove_vid(){
+	const weburl = $("#theweburl").val()
+	window.pywebview.api.file_remove(weburl).then(function(response){
+		$(".page2").hide();
+		$(".page1").show();
+		if (response["success"]){
+			$(".success-message").css("display", "block");
+		} else {
+			$(".erorr-message").css("display", "block");
+		}
+	});
+}
 
 // edit the selected video
 function loadcatg_p1(){
@@ -161,10 +175,12 @@ function editvid(){
 	const visibility = $("input[name='visibility']:checked").val();
 	window.pywebview.api.editvid(weburl, name, about, category, filetype, visibility).then(function(response){
 		echostuff(response);
+		$(".page2").hide();
+		$(".page1").show();
 		if (response.startsWith("1success")){
-			$(".page2").hide();
-			$(".page1").show();
 			$(".success-message").css("display", "block");
+		} else {
+			$(".erorr-message").css("display", "block");
 		}
 	});
 }

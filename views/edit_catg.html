@@ -56,10 +56,10 @@ function loadCategories(){
 	window.pywebview.api.get_categories().then(function(response){
 		const categories = response["categories"];
 		if (Object.keys(categories).length > 0) {
-				categories.forEach(ctg => {
-					$("#categorySelect").append(`<option value="${ctg}">${ctg}</option>`);
-				});
-			}
+			categories.forEach(ctg => {
+				$("#categorySelect").append(`<option value="${ctg}">${ctg}</option>`);
+			});
+		}
 	});
 }
 
@@ -96,7 +96,7 @@ function showCreateCategory(){
 	$(".page2").show();
 	$("categoryParent").val("");
 	$("#categoryParent").append(`<option value="/">/</option>`);
-	window.pywebview.api.get_categories(0,2).then(function(response){
+	window.pywebview.api.get_categories().then(function(response){
 		const categories = response["categories"];
 		if (Object.keys(categories).length > 0) {
 			categories.forEach(ctg => {

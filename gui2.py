@@ -3,12 +3,14 @@ from json import load
 from subprocess import PIPE, Popen
 from threading import Thread
 from time import sleep, time
+from traceback import print_exc
 from requests import post
 from webview import OPEN_DIALOG, create_window, start, settings, FOLDER_DIALOG
 from os import getcwd
 from jellyfish import levenshtein_distance
 from difflib import SequenceMatcher
 from sys import argv
+from py_files import download, upload
 
 CURRENT_PATH = getcwd()
 print(CURRENT_PATH)
@@ -56,7 +58,7 @@ def changeconsole(msg):
 
 def changegui(value:bool):
 	global WINDOW
-	elements = [".header-upload", ".header-download", ".header-logo", ".header-files"]
+	elements = [".header-upload", ".header-download", ".header-logo", ".header-files", ".header-edit"]
 	for element in elements:
 		WINDOW.dom.get_element(element).style["disabled"] = value
 		if value:
@@ -122,18 +124,18 @@ def play(weburl:str):
 			return play(retry)
 		return "aborted"
 	try:
-		r = post(f"{API_URL}/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
-		r = int(eval(r.decode("utf-8")))
+		currentsec = post(f"{API_URL}/activity/currentsec", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		currentsec = int(currentsec.decode("utf-8"))
 	except:
-		print("failed to get currentsec")
+		print("failed to get currentsec", )
 		return abort_vlc(None, weburl)
-		r = 0
+		currentsec = 0
 	# print(r,VLC_PORT,VLC_HTTP_PASS,url)
 	url = CDN_URL + weburl
 
 	command = [VLC_PATH,
 		"--intf", "qt",
-		"--start-time="+str(r),
+		"--start-time="+str(currentsec),
 		"--extraintf", "http",
 		"--http-port", str(VLC_PORT),
 		"--http-password", str(VLC_HTTP_PASS),
@@ -161,7 +163,7 @@ def play(weburl:str):
 			continue
 		else:
 			duration = data['length']
-	r = post(f"{API_URL}/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":0,"state":"starting"}).content
+	r = post(f"{API_URL}/activity/updatesec", headers={"api-key":API_KEY}, json={"weburl":weburl,"current":currentsec,"state":"starting"}).content
 	if r == b"ok":
 		print("updated starting")
 	else:
@@ -173,7 +175,7 @@ def play(weburl:str):
 		data = get_info()
 		if data == None:
 			print(f"{currenttime}/{duration}, exit")
-			Thread(target=make_request, args=(f"{API_URL}/activity/updatesec",{"weburl":weburl,"current":currenttime,"state":"update_time"},"update_time")).start()
+			Thread(target=make_request, args=(f"{API_URL}/activity/updatesec",{"weburl":weburl,"current":currenttime,"state":"update_time"},f"update_time1 {currenttime}")).start()
 			return abort_vlc(proc_vlc)
 		state = data['state']
 		ttime = data['time']
@@ -182,8 +184,9 @@ def play(weburl:str):
 			sleep(0.1)
 			continue
 		if time() - update_timeout > 5:
-			Thread(target=make_request, args=(f"{API_URL}/activity/updatesec",{"weburl":weburl,"current":ttime,"state":"update_time"},"update_time")).start()
 			update_timeout = time()
+			if ttime == 0: continue
+			Thread(target=make_request, args=(f"{API_URL}/activity/updatesec",{"weburl":weburl,"current":ttime,"state":"update_time"},f"update_time2 {ttime}")).start()
 		if currentstate == state or currenttime == ttime:
 			sleep(0.1)
 			continue
@@ -191,7 +194,7 @@ def play(weburl:str):
 			#Thread(target=make_request, args=(f"{API_URL}/activity/updatesec",{"weburl":weburl,"finished":1},"finished")).start()
 			print("finished but didnt update. will worked on it later.")
 		else:
-			Thread(target=make_request, args=(f"{API_URL}/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},"current")).start()
+			Thread(target=make_request, args=(f"{API_URL}/activity/updatesec",{"weburl":weburl,"current":ttime,"state":state},f"current {ttime}")).start()
 
 		currentstate = state
 		if currentstate != "ended":
@@ -249,11 +252,29 @@ class Api:
 	def get_lastactivity(self):
 		r = post(f"{API_URL}/activity/lastactivies", headers={"api-key":API_KEY}).content
 		#add apikey to first element of the list
-		r:list = eval(r.decode("utf-8"))
-		r.insert(0, API_KEY)
-		return str(r)
-	
-	def get_categories(self, remove_cache:bool=False, depth:int=3):
+		try:
+			r:list = eval(r.decode("utf-8"))
+			r.insert(0, API_KEY)
+			return str(r)
+		except:
+			print(r)
+			print_exc()
+			return ""
+	def flattenCategories(self, categories, parentPath = ''):
+		flatCategories = []
+		
+		for key, value in categories.items():
+			currentPath = parentPath + key + '/'
+			flatCategories.append(currentPath)
+			
+			if isinstance(value, dict) and value:
+				childCategories = self.flattenCategories(value, currentPath)
+				if childCategories:
+					flatCategories.extend(childCategories)
+		
+		return flatCategories
+
+	def get_categories(self, remove_cache:bool=False):
 		global CATEGORIES_LIST
 		global CATEGORIES
 		if remove_cache:
@@ -263,16 +284,19 @@ class Api:
 		if CATEGORIES_LIST == []:
 			r = post(f"{API_URL}/upload/get_categories", headers={"api-key":API_KEY})
 			CATEGORIES_LIST = r.json()
-			CATEGORIES = []
-			for i in CATEGORIES_LIST:
-				CATEGORIES.append(f"{i}/")
-				for k in CATEGORIES_LIST[i]:
-					CATEGORIES.append(f"{i}/{k}/")
-					for l in CATEGORIES_LIST[i][k]:
-						CATEGORIES.append(f"{i}/{k}/{l}/")
-		if depth != 3:
-			return {'categories': [i for i in CATEGORIES if i.count("/") <= depth]}
+			# print(CATEGORIES_LIST)
+			CATEGORIES = self.flattenCategories(CATEGORIES_LIST)
+
 		return {'categories': CATEGORIES}
+	
+	def file_remove(self, weburl):
+		weburl = int(weburl)
+		r = post(f"{API_URL}/files/remove_file", headers={"api-key":API_KEY}, json={"weburl":weburl}).content
+		if r == b"ok":
+			return {'success': 1}
+		else:
+			return {'success': 0}
+	
 	def get_categories_list(self, catg:str=""):
 		if catg.startswith("search:"):
 			return False
@@ -282,12 +306,22 @@ class Api:
 		if catg[-1] == "/":
 			catg = catg[:-1]
 		catg = catg.split("/")
-		if len(catg) == 1:
-			return {'categories': [i for i in CATEGORIES_LIST[catg[0]]]}
-		elif len(catg) == 2:
-			return {'categories': [i for i in CATEGORIES_LIST[catg[0]][catg[1]]]}
+
+		result = CATEGORIES_LIST
+		for part in catg:
+			if not part:  # Skip empty parts
+				continue
+
+			if isinstance(result, dict) and part in result:
+				result = result[part]
+			else:
+				return {'categories': [], "api_key": API_KEY}  # Path not found
+
+		if isinstance(result, dict):
+			return {'categories': list(result.keys()), "api_key": API_KEY}
+
 		else:
-			return {'categories': []}
+			return {'categories': [], "api_key":API_KEY}
 	def get_files(self, category:str="", remove_cache:bool=False):
 		global FILES_LIST
 		if remove_cache:
@@ -353,8 +387,8 @@ class Api:
 			if chr not in ACCEPTED_CHR:
 				return f"name_char: `{chr}` not accepted"
 		len_name = len(name)
-		if (len_name < 2) or (len_name > 100):
-			return "name is too short or too long (2-100)"
+		if (len_name < 2) or (len_name > 256):
+			return "name is too short or too long (2-256)"
 		
 		if not (filetype == "photo" or filetype == "video" or filetype=="text"):
 			filetype = "other"
@@ -383,6 +417,7 @@ class Api:
 			return "name is too short or too long (2-100)"
 		try:
 			r = post(f"{API_URL}/upload/create_category", headers={"api-key": API_KEY}, json={"name":name,"parent":parent}).content
+			print(r)
 			if r == b"ok":
 				self.get_categories(True)
 				return f"1success-{r.decode('utf-8')}"
@@ -406,19 +441,28 @@ class Api:
 			OUTDIR = DEFAULT_OUTDIR
 		if type(OUTDIR) == list or type(OUTDIR) == tuple or type(OUTDIR) == set:
 			OUTDIR = OUTDIR[0]
-		command = [PYTHON_VER,
-			"-u",
-			CMD_DOWNLOAD,
-			str(weburl),
-			str(OUTDIR)
-		]
-		changeconsole(command)
-		proc_download = Popen(command, stdout=PIPE, text=True, bufsize=1)
-		while True:
-			line = proc_download.stdout.readline()
-			changeconsole(line.strip())
-			if not line:
-				break
+		# command = [PYTHON_VER,
+		# 	"-u",
+		# 	CMD_DOWNLOAD,
+		# 	str(weburl),
+		# 	str(OUTDIR)
+		# ]
+		# changeconsole(command)
+		# proc_download = Popen(command, stdout=PIPE, text=True, bufsize=1)
+		# while True:
+		# 	line = proc_download.stdout.readline()
+		# 	changeconsole(line.strip())
+		# 	if not line:
+		# 		break
+		try:
+			result = download.run(str(weburl), str(OUTDIR), print_callback=changeconsole)
+			if result != True:
+				changeconsole("!! something went wrong, uploading.")
+				return abort({'status': 'failed'})
+		except Exception as e:
+			changeconsole(f"Upload error: {str(e)}")
+			return abort({'status': 'failed'})
+		changeconsole(f"!!downloaded!! {weburl}")
 		changeconsole("you can close the window now.")
 		self.get_files("", True)
 		self.get_categories(True)
@@ -463,7 +507,7 @@ class Api:
 			changeconsole(f"now: {ffile}")
 			if autocheck:
 				fname = ffile.split("\\")[-1]
-				fname = ffile.split("/")[-1]
+				fname:str = ffile.split("/")[-1]
 				ext = "." + fname.split(".")[-1]
 				if ext in VIDEO_EXT:
 					ftype = "video"
@@ -474,7 +518,7 @@ class Api:
 				else:
 					ftype = "other"
 			else:
-				fname = items[1]
+				fname:str = items[1]
 				ftype = items[4]
 				if not (ftype == "photo" or ftype == "video" or ftype=="text"):
 					ftype = "other"
@@ -482,30 +526,38 @@ class Api:
 			accp = list("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZıĞğÜüŞşİÖöÇç-,._()!+-[]{} ")
 			for chr in fname:
 				if chr not in accp:
-					changeconsole("fail4")
+					changeconsole(f"fail4 - {chr}")
 					return abort({'status': 'fail'})
 			len_fname = len(fname)
-			if (len_fname < 2) or (len_fname > 100):
+			if (len_fname < 2) or (len_fname > 256):
 				changeconsole("fail5")
 				return abort({'status': 'fail'})
 
-			command = [PYTHON_VER,
-				"-u",
-				CMD_UPLOAD,
-				str(ffile),
-				str(fname),
-				str(about),
-				str(category),
-				str(ftype),
-				str(private)
-			]
-			changeconsole(command)
-			proc_upload = Popen(command, stdout=PIPE, text=True, bufsize=1)
-			while True:
-				line = proc_upload.stdout.readline()
-				changeconsole(line.strip())
-				if not line:
-					break
+			# command = [PYTHON_VER,
+			# 	"-u",
+			# 	CMD_UPLOAD,
+				# str(ffile),
+				# str(fname),
+				# str(about),
+				# str(category),
+				# str(ftype),
+				# str(private)
+			# ]
+			# changeconsole(command)
+			# proc_upload = Popen(command, stdout=PIPE, text=True, bufsize=1)
+			# while True:
+			# 	line = proc_upload.stdout.readline()
+			# 	changeconsole(line.strip())
+			# 	if not line:
+			# 		break
+			try:
+				result = upload.run(str(ffile), str(fname), str(about), str(category), str(ftype), str(private), changeconsole)
+				if result != True:
+					changeconsole("!! something went wrong, uploading.")
+					return abort({'status': 'failed'})
+			except Exception as e:
+				changeconsole(f"Upload error: {str(e)}")
+				return abort({'status': 'failed'})
 			changeconsole(f"!!uploaded!! {fname}")
 		changeconsole("you can close the window now.")
 		self.get_files("", True)
@@ -520,12 +572,15 @@ if __name__ == '__main__':
 		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=True, text_select=True, background_color="#181818")
 	except:
+		print_exc()
 		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=True, text_select=False, background_color="#181818")
 	try:
 		_arg1 = argv[1]
 		start(http_port=PORT, gui="gtk", debug=(_arg1=="debug"), storage_path=fr"{CURRENT_PATH}/assets/.cache")
 	except IndexError as e:
+		print_exc()
 		start(http_port=PORT, gui="gtk", debug=False, storage_path=fr"{CURRENT_PATH}/assets/.cache")
 	except Exception as e:
+		print_exc()
 		print(e)
 	

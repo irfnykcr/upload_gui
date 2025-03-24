@@ -113,35 +113,57 @@ window.pywebview.api.get_categories_list().then(
 	function(response){
 		const target_dir = $(".category-list-div");
 		const categories = response["categories"];
-		for (var key in categories){
-			var value = categories[key];
-			let ul = $('<ul class="uk-nav-default" uk-nav></ul>');
-			if (Object.keys(value).length > 0) {
-				let li = $('<li class="uk-parent"></li>');
-				li.append(`<a href="/index.html?i=files&c=${key}/"><span onclick="window.location.href = '/index.html?i=files&c=${key}/';">${key}</span><span uk-nav-parent-icon></span></a>`);
-				let subUl = $('<ul class="uk-nav-sub" uk-nav></ul>');
-				for (let subcat in value) {
-					if (value[subcat].length > 0) {
-						let subLi = $('<li class="uk-parent"></li>');
-						subLi.append(`<a href="/index.html?i=files&c=${key}/${subcat}/"><span onclick="window.location.href = '/index.html?i=files&c=${key}/${subcat}/';">${subcat}</span><span uk-nav-parent-icon></span></a>`);
-						let subSubUl = $('<ul class="uk-nav-sub"></ul>');
-						value[subcat].forEach(subsubcat => {
-							subSubUl.append(`<li><a href="/index.html?i=files&c=${key}/${subcat}/${subsubcat}/">${subsubcat}</a></li>`);
+
+		// Recursive function to build the category tree
+		function buildCategoryTree(container, path, categoryObj) {
+			if (typeof categoryObj === 'object' && !Array.isArray(categoryObj) && Object.keys(categoryObj).length > 0) {
+				let ul = $('<ul class="uk-nav-default" uk-nav></ul>');
+				
+				for (let category in categoryObj) {
+					const newPath = path ? `${path}/${category}` : category;
+					const value = categoryObj[category];
+					
+					if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) {
+						// This category has subcategories
+						let li = $('<li class="uk-parent"></li>');
+						li.append(`<a href="/index.html?i=files&c=${newPath}/"><span onclick="window.location.href = '/index.html?i=files&c=${newPath}/';">${category}</span><span uk-nav-parent-icon></span></a>`);
+						
+						// Recursively build subcategories
+						let subUl = $('<ul class="uk-nav-sub" uk-nav></ul>');
+						buildCategoryTree(subUl, newPath, value);
+						li.append(subUl);
+						ul.append(li);
+					} else if (Array.isArray(value) && value.length > 0) {
+						// This category has an array of items
+						let li = $('<li class="uk-parent"></li>');
+						li.append(`<a href="/index.html?i=files&c=${newPath}/"><span onclick="window.location.href = '/index.html?i=files&c=${newPath}/';">${category}</span><span uk-nav-parent-icon></span></a>`);
+						
+						let subUl = $('<ul class="uk-nav-sub"></ul>');
+						value.forEach(item => {
+							const itemPath = `${newPath}/${item}`;
+							subUl.append(`<li><a href="/index.html?i=files&c=${itemPath}/">${item}</a></li>`);
 						});
-						subLi.append(subSubUl);
-						subUl.append(subLi);
-						// echostuff(subcat, value[subcat]);
+						li.append(subUl);
+						ul.append(li);
 					} else {
-						subUl.append(`<li><a href="/index.html?i=files&c=${key}/${subcat}/">${subcat}</a></li>`);
+						// This is a leaf category with no children
+						ul.append(`<li><a href="/index.html?i=files&c=${newPath}/">${category}</a></li>`);
 					}
 				}
-				li.append(subUl);
-				ul.append(li);
-			} else {
-				ul.append(`<li><a href="/index.html?i=files&c=${key}/">${key}</a></li>`);
+				container.append(ul);
+			} else if (Array.isArray(categoryObj) && categoryObj.length > 0) {
+				// Handle pure array of items
+				let ul = $('<ul class="uk-nav-default" uk-nav></ul>');
+				categoryObj.forEach(item => {
+					const itemPath = `${path}/${item}`;
+					ul.append(`<li><a href="/index.html?i=files&c=${itemPath}/">${item}</a></li>`);
+				});
+				container.append(ul);
 			}
-			target_dir.append(ul);
 		}
+
+		// Start building from the root
+		buildCategoryTree(target_dir, "", categories);
 	}
 );
 function createSpinner(color=0){
@@ -350,7 +372,7 @@ if (_c == null) {
 				overlay.addEventListener('mouseout', event => {
 					overlay.style.opacity = '0';
 					if (!item.loadFailed){
-						item.src = blob;
+						item.src = window.sessionStorage.getItem(`${weburl}_still`);
 					}
 				});
 			});
@@ -416,7 +438,7 @@ if (_c == null) {
 				overlay.addEventListener('mouseout', event => {
 					overlay.style.opacity = '0';
 					if (!item.loadFailed){
-						item.src = blob;
+						item.src = window.sessionStorage.getItem(`${weburl}_still`);
 					}
 				});
 			});
@@ -432,19 +454,40 @@ if (_c == null) {
 	echostuff("got category: " + _c);
 	window.pywebview.api.get_categories_list(_c).then( function(response){
 		if (response != false) {
-			categories = response["categories"];
+			const categories = response["categories"];
+			const api_key = response["api_key"]
 			if (Object.keys(categories).length > 0) {
 				categories.forEach(ctg => {
-					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;"></li>');
+					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;position:relative;"></li>');
 					let goto = (_c.endsWith("/") ? _c.slice(0, -1) : _c) + "/" + ctg;
-					let imgSrc = "/stuff/folder.png";
-					li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" src="${imgSrc}">`);
+					let imgFallback = "/stuff/folder.png";
+					li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" class="folder_images" data-id="${goto}" src="${imgFallback}">`);
 					li.append(`<a href="/index.html?i=files&c=${goto}" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${ctg}</a>`);
 					catgFiles.append(li);
+
+					const img = document.querySelector(`[data-id="${goto}"]`);
+					const spinner = createSpinner(1);
+					img.parentElement.appendChild(spinner);
+
+					fetch(`https://api.turkuazz.vip/v1/getimage?api-key=${api_key}&category=${goto}`)
+						.then(response => {
+							if (response.ok) {
+								img.src = `https://api.turkuazz.vip/v1/getimage?api-key=${api_key}&category=${goto}`;
+							} else {
+								img.src = imgFallback;
+							}
+						})
+						.catch(() => {
+							img.src = imgFallback;
+						})
+						.finally(() => {
+							spinner.remove();
+						});
 				});
 			}
 		}
 	});
+	// https://api.turkuazz.vip/v1/getimage?api-key=${api_key}&category=${goto}
 	if (_c != null) {
 		window.pywebview.api.get_files(
 			_c
@@ -454,17 +497,17 @@ if (_c == null) {
 			const apikey = response["apikey"];
 			//there should be breadcrumbs and catg-files
 			const breadcrumbs = $(".breadcrumbs");
-			breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}">${splitted_catg[0]}</a>`);
+			let path = '';
 			
-			if (splitted_catg.length == 2) {
-				breadcrumbs.append(' / ');
-				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
-			} else if (splitted_catg.length >= 3) {
-				breadcrumbs.append(' / ');
-				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}">${splitted_catg[1]}</a>`);
-				breadcrumbs.append(' / ');
-				breadcrumbs.append(`<a href="/index.html?i=files&c=${splitted_catg[0]}/${splitted_catg[1]}/${splitted_catg[2]}">${splitted_catg[2]}</a>`);
-			}
+			// Build breadcrumbs dynamically for any number of levels
+			splitted_catg.forEach((crumb, index) => {
+				path += crumb;
+				if (index > 0) {
+					breadcrumbs.append(' / ');
+				}
+				breadcrumbs.append(`<a href="/index.html?i=files&c=${path}">${crumb}</a>`);
+				path += '/';
+			});
 			//echostuff(splitted_catg);
 			if (files.length > 0 ) {
 				files.forEach(file => {
@@ -509,7 +552,7 @@ if (_c == null) {
 					overlay.addEventListener('mouseout', event => {
 						overlay.style.opacity = '0';
 						if (!item.loadFailed){
-							item.src = blob;
+							item.src = window.sessionStorage.getItem(`${weburl}_still`);
 						}
 					});
 				});
