@@ -1,16 +1,18 @@
 from datetime import datetime
 from json import load
-from subprocess import PIPE, Popen
+from subprocess import Popen
 from threading import Thread
 from time import sleep, time
 from traceback import print_exc
 from requests import post
-from webview import OPEN_DIALOG, create_window, start, settings, FOLDER_DIALOG
+from webview import OPEN_DIALOG, create_window, start, settings, FOLDER_DIALOG, Window
 from os import getcwd
 from jellyfish import levenshtein_distance
 from difflib import SequenceMatcher
 from sys import argv
 from py_files import download, upload
+
+# TODO: MAKE ABORT WORK
 
 CURRENT_PATH = getcwd()
 print(CURRENT_PATH)
@@ -50,25 +52,30 @@ settings = {
 def changeconsole(msg):
 	global WINDOW
 	c = WINDOW.dom.get_element(".console")
+	if not c:
+		return
 	c.append(f"<p>{str(datetime.now()).split(' ')[1][:10]}> {msg}</p>")
 	c = WINDOW.dom.get_element(".autoscroll") #checkbox
 	if WINDOW.evaluate_js('document.querySelector(".autoscroll").checked'):
 		WINDOW.evaluate_js('$(".console").scrollTop(999999);')
 	# WINDOW.evaluate_js('$(".console").scrollTop(999999);')
 
-def changegui(value:bool):
+def changegui(disable:bool):
 	global WINDOW
 	elements = [".header-upload", ".header-download", ".header-logo", ".header-files", ".header-edit"]
 	for element in elements:
-		WINDOW.dom.get_element(element).style["disabled"] = value
-		if value:
-			WINDOW.dom.get_element(element).style["pointer-events"] = "none"
-			WINDOW.dom.get_element(element).style["cursor"] = "not-allowed"
+		selected_element = WINDOW.dom.get_element(element)
+		if not selected_element:
+			continue
+		selected_element.style["disabled"] = disable
+		if disable:
+			selected_element.style["pointer-events"] = "none"
+			selected_element.style["cursor"] = "not-allowed"
 		else:
-			WINDOW.dom.get_element(element).style["pointer-events"] = "all"
-			WINDOW.dom.get_element(element).style["cursor"] = "pointer"
+			selected_element.style["pointer-events"] = "all"
+			selected_element.style["cursor"] = "pointer"
 
-def abort(return_msg:dict):
+def abort(return_msg:dict) -> dict:
 	changegui(False)
 	return return_msg
 
@@ -88,21 +95,28 @@ def is_similar(a:str, b:str):
 
 def search_func(search_key:str):
 	global FILES_LIST
-	global CATEGORIES_LIST
+	global CATEGORIES
 	t = 0
 	search_key = search_key.lower()
-	searched = []
+	searched_files = []
+	searched_catg = []
+
+	for i in CATEGORIES:
+		s1 = is_similar(search_key, i.lower())
+		if s1 > t:
+			searched_catg.append(i)
 	for i in FILES_LIST:
+		# in name, category, about
 		if search_key in i[1].lower() or search_key in i[2].lower() or search_key in i[5].lower():
-			searched.append(i)
+			searched_files.append(i)
 			continue
 		s1 = is_similar(search_key, i[1].lower())
 		s2 = is_similar(search_key, i[2].lower()) 
 		s3 = is_similar(search_key, i[5].lower())
 		if s1 > t or s2 > t or s3 > t:
 			print(s1,s2,s3, i)
-			searched.append(i)
-	return searched
+			searched_files.append(i)
+	return searched_files, searched_catg
 def play(weburl:str):
 	global VLC_PATH
 	global VLC_PORT
@@ -113,13 +127,13 @@ def play(weburl:str):
 		print("already playing a vid")
 		return False
 	CURRENT_VIDEO = weburl
-	def abort_vlc(proc_vlc=None, retry=False):
-		if proc_vlc != None:
+	def abort_vlc(proc_vlc:Popen[bytes]|None=None, retry=""):
+		if isinstance(proc_vlc, Popen):
 			proc_vlc.kill()
 		global CURRENT_VIDEO
 		CURRENT_VIDEO = None
 		print(f"aborted: abort_vlc() w-kill/{proc_vlc!=None}")
-		if retry != False:
+		if retry != "":
 			print(f"aborted, retry={retry}")
 			return play(retry)
 		return "aborted"
@@ -147,7 +161,7 @@ def play(weburl:str):
 	retry = 0
 	def get_info():
 		try:
-			response = post(f"http://localhost:{VLC_PORT}/requests/status.json", auth=("",VLC_HTTP_PASS))
+			response = post(f"http://127.0.0.1:{VLC_PORT}/requests/status.json", auth=("",VLC_HTTP_PASS))
 			response.raise_for_status()
 			return response.json()
 		except:
@@ -159,7 +173,7 @@ def play(weburl:str):
 				print("failed to get duration")
 				return abort_vlc(proc_vlc, weburl)
 			retry += 1
-			sleep(0.05)
+			sleep(0.1)
 			continue
 		else:
 			duration = data['length']
@@ -250,14 +264,17 @@ class Api:
 		return str(r)
 
 	def get_lastactivity(self):
-		r = post(f"{API_URL}/activity/lastactivies", headers={"api-key":API_KEY}).content
+		r = post(f"{API_URL}/activity/lastactivies", headers={"api-key":API_KEY})
+		if not r:
+			print("problem with post request. get_lastactivity")
+			return ""
 		#add apikey to first element of the list
 		try:
-			r:list = eval(r.decode("utf-8"))
-			r.insert(0, API_KEY)
-			return str(r)
+			r_content:list = eval(r.content.decode("utf-8"))
+			r_content.insert(0, API_KEY)
+			return str(r_content)
 		except:
-			print(r)
+			print(r.status_code, r.content)
 			print_exc()
 			return ""
 	def flattenCategories(self, categories, parentPath = ''):
@@ -286,7 +303,6 @@ class Api:
 			CATEGORIES_LIST = r.json()
 			# print(CATEGORIES_LIST)
 			CATEGORIES = self.flattenCategories(CATEGORIES_LIST)
-
 		return {'categories': CATEGORIES}
 	
 	def file_remove(self, weburl):
@@ -305,10 +321,10 @@ class Api:
 			return {'categories': CATEGORIES_LIST}
 		if catg[-1] == "/":
 			catg = catg[:-1]
-		catg = catg.split("/")
+		catg_splitted = catg.split("/")
 
 		result = CATEGORIES_LIST
-		for part in catg:
+		for part in catg_splitted:
 			if not part:  # Skip empty parts
 				continue
 
@@ -341,7 +357,8 @@ class Api:
 		elif category.startswith("search:"):
 			search_key = category[7:]
 			print("searching", search_key)
-			return {'files': search_func(search_key)}
+			search_res = search_func(search_key)
+			return {'files': search_res[0], "categories":search_res[1]}
 		else:
 			if category[-1] != "/":
 				category = category + "/"
@@ -353,7 +370,7 @@ class Api:
 			return {'files': _temp_ctg, 'apikey': API_KEY}
 	def searchinall(self, weburl:str):
 		try:
-			weburl = int(weburl)
+			weburl_int = int(weburl)
 		except:
 			return {'file': None}
 		global FILES_LIST
@@ -361,7 +378,7 @@ class Api:
 			r = post(f"{API_URL}/files/getfiles", headers={"api-key":API_KEY}).content
 			FILES_LIST = eval(r.decode("utf-8"))
 		for i in FILES_LIST:
-			if i[0] == weburl:
+			if i[0] == weburl_int:
 				return {'file': i}
 		return {'file': None}
 
@@ -427,38 +444,44 @@ class Api:
 			return f"failed to create category - {e}"
 		
 
+	def download_abort(self, weburl:str):
+		global WINDOW
+		changegui(True)
+		isokay_toabort = WINDOW.create_confirmation_dialog("abort?", "do you want to abort?")
+		if not isokay_toabort:
+			changeconsole(f"aborting cancelled. continue with: {weburl}")
+			changegui(False)
+			return
+		changeconsole(f"Aborting: {weburl}")
+		try:
+			download.abort()
+			changeconsole(f"succesfully aborted: {weburl}")
+			changegui(False)
+			return abort({'status': 'success'})
+		except Exception as e:
+			print_exc()
+			changeconsole(f"aborting error!: {weburl} e`{str(e)}`")
+			changegui(False)
+			return abort({'status': 'failed'})
 
 	def download(self, weburl:str):
 		global WINDOW
-		global CMD_DOWNLOAD
-		global PYTHON_VER
+		# global CMD_DOWNLOAD
+		# global PYTHON_VER
 		changegui(True)
 		changeconsole(f"downloading: {weburl}")
 		weburl = ''.join(x for x in weburl if x.isdigit())
-		OUTDIR = WINDOW.create_file_dialog(FOLDER_DIALOG)
-		if OUTDIR == None:
+		outdir_dialog = WINDOW.create_file_dialog(FOLDER_DIALOG)
+		if type(outdir_dialog) == list or type(outdir_dialog) == tuple or type(outdir_dialog) == set:
+			outdir:str = outdir_dialog[0]
+		else:
 			changeconsole("selected folder is invalid. using default from config.")
-			OUTDIR = DEFAULT_OUTDIR
-		if type(OUTDIR) == list or type(OUTDIR) == tuple or type(OUTDIR) == set:
-			OUTDIR = OUTDIR[0]
-		# command = [PYTHON_VER,
-		# 	"-u",
-		# 	CMD_DOWNLOAD,
-		# 	str(weburl),
-		# 	str(OUTDIR)
-		# ]
-		# changeconsole(command)
-		# proc_download = Popen(command, stdout=PIPE, text=True, bufsize=1)
-		# while True:
-		# 	line = proc_download.stdout.readline()
-		# 	changeconsole(line.strip())
-		# 	if not line:
-		# 		break
+			outdir = DEFAULT_OUTDIR
 		try:
-			result = download.run(str(weburl), str(OUTDIR), print_callback=changeconsole)
+			result = download.run(weburl, outdir, print_callback=changeconsole)
 			if result != True:
-				changeconsole("!! something went wrong, uploading.")
-				return abort({'status': 'failed'})
+				changeconsole("!! something went wrong, download.")
+				return abort({'status': result[1]})
 		except Exception as e:
 			changeconsole(f"Upload error: {str(e)}")
 			return abort({'status': 'failed'})
@@ -467,6 +490,26 @@ class Api:
 		self.get_files("", True)
 		self.get_categories(True)
 		return abort({'status': 'success'})
+
+	def upload_abort(self, f_name):
+		global WINDOW
+		changegui(True)
+		isokay_toabort = WINDOW.create_confirmation_dialog("abort?", "do you want to abort?")
+		if not isokay_toabort:
+			changeconsole(f"aborting cancelled. continue with: {f_name}")
+			changegui(False)
+			return
+		changeconsole(f"Aborting: {f_name}")
+		try:
+			upload.abort()
+			changeconsole(f"succesfully aborted: {f_name}")
+			changegui(False)
+			return abort({'status': 'aborted succesfully'})
+		except Exception as e:
+			print_exc()
+			changeconsole(f"aborting error!: {f_name} e`{str(e)}`")
+			changegui(False)
+			return abort({'status': 'failed'})
 
 	def upload(self, items):
 		global ACCEPTED_CHR
@@ -532,29 +575,11 @@ class Api:
 			if (len_fname < 2) or (len_fname > 256):
 				changeconsole("fail5")
 				return abort({'status': 'fail'})
-
-			# command = [PYTHON_VER,
-			# 	"-u",
-			# 	CMD_UPLOAD,
-				# str(ffile),
-				# str(fname),
-				# str(about),
-				# str(category),
-				# str(ftype),
-				# str(private)
-			# ]
-			# changeconsole(command)
-			# proc_upload = Popen(command, stdout=PIPE, text=True, bufsize=1)
-			# while True:
-			# 	line = proc_upload.stdout.readline()
-			# 	changeconsole(line.strip())
-			# 	if not line:
-			# 		break
 			try:
 				result = upload.run(str(ffile), str(fname), str(about), str(category), str(ftype), str(private), changeconsole)
 				if result != True:
 					changeconsole("!! something went wrong, uploading.")
-					return abort({'status': 'failed'})
+					return abort({'status': result[1]})
 			except Exception as e:
 				changeconsole(f"Upload error: {str(e)}")
 				return abort({'status': 'failed'})
@@ -570,10 +595,10 @@ if __name__ == '__main__':
 		api.get_files()
 		api.get_categories()
 		# WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=upload", js_api=api, width=width, height=height, resizable=False, text_select=True, background_color="#181818")
-		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=True, text_select=True, background_color="#181818")
+		WINDOW:Window = create_window('upload', fr"{CURRENT_PATH}/views/index.html?i=files", js_api=api, width=width, height=height, resizable=True, text_select=True, background_color="#181818")
 	except:
 		print_exc()
-		WINDOW = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=True, text_select=False, background_color="#181818")
+		WINDOW:Window = create_window('upload', fr"{CURRENT_PATH}/views/noapi.html", width=width, height=height, resizable=True, text_select=False, background_color="#181818")
 	try:
 		_arg1 = argv[1]
 		start(http_port=PORT, gui="gtk", debug=(_arg1=="debug"), storage_path=fr"{CURRENT_PATH}/assets/.cache")

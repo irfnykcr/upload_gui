@@ -4,6 +4,10 @@ from os import _exit
 from threading import Thread 
 from time import perf_counter_ns, time
 
+
+#TODO: ADD CHECKSUM ON SERVER AND CLIENT SIDE
+
+
 ABORT = 0
 def abort():
 	global ABORT
@@ -12,10 +16,11 @@ def abort():
 	PRINT_CALLBACK("aborting..")
 	exit()
 	_exit()
+	return
 
 def run(weburl, outdir="", print_callback=print):
 	global ABORT
-	if ABORT: print("!!!abort signal!!!");return 0, "abort signal"
+	ABORT = 0
 	global WEBURL
 	global OUTDIR
 	global UNIQUE_KEY
@@ -98,17 +103,17 @@ def __run():
 			data = r.content
 			if r.status_code != 200:
 				if RETRIES >= MAX_RETRY:
-					PRINT_CALLBACK(f"something went wrong while uploading file! exitting. {r.content} {r.status_code}")
+					PRINT_CALLBACK(f"something went wrong while downloading file! exitting. {r.content} {r.status_code}")
 					return abort()
 				RETRIES += 1
-				PRINT_CALLBACK(f"something went wrong with {n} - post, retrying..",r.status_code, r.content)
+				PRINT_CALLBACK(f"something went wrong with {n} - post, retrying.. {r.status_code} {r.content}")
 				return download_chunk(url, n)
 			DATALIST.append((n,data))
 			DONE+=1
 			up_s = round(DONE/((perf_counter_ns()/10e8)-TIME_STARTED), 2)
 			PRINT_CALLBACK(f"- {n} --:: downloaded {round((DONE/TOTAL)*100,2)}% --:: {DONE}/{TOTAL} --:: {up_s}up/s --:: kalan ~= {round(((TOTAL-DONE)/up_s)/60, 2)}dk")
 		except Exception as e:
-			PRINT_CALLBACK(f"something went wrong with {n}, trying again.", e)
+			PRINT_CALLBACK(f"something went wrong with {n}, trying again. {e}")
 			return download_chunk(url, n)
 
 	threads = []

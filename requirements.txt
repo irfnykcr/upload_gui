@@ -3,7 +3,7 @@ certifi==2024.8.30
 cffi==1.17.1
 charset-normalizer==3.3.2
 clr-loader==0.2.6
-cryptography==43.0.1
+cryptography==44.0.2 
 deflate==0.7.0
 idna==3.10
 numpy==2.1.1

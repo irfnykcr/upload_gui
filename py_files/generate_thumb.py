@@ -1,9 +1,10 @@
 from json import load
 from subprocess import check_output, run
-from sys import argv
 from threading import Thread
 from os import path as os_path, makedirs, _exit
 from cv2 import VideoCapture, imwrite, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES, IMWRITE_WEBP_QUALITY
+
+#TODO: FIX SERVER SIDE UPLOADING
 
 ABORT = 0
 
@@ -37,7 +38,11 @@ def start(url, weburl, ftype, print_callback=print):
 	URL = fr"{url}"
 	WEBURL = weburl
 	FTYPE = ftype
-	DUR = getdur(URL)
+	gd = getdur(URL)
+	if isinstance(gd, tuple):
+		return
+	else:
+		DUR = gd
 	randomname = str(abs(hash(URL)))
 	with open(r"./config/config.json", "r") as f:
 		j = load(f)
@@ -55,7 +60,7 @@ def start(url, weburl, ftype, print_callback=print):
 	extract_middle_frame()
 	if ABORT: print("!!!abort signal!!!");return 0, "abort signal"
 	r = upfile()
-	PRINT_CALLBACK("ok,", r)
+	PRINT_CALLBACK(f"ok, {r}")
 	#remove tmp
 	run(f"rm -r {OUTDIR}", shell=True)
 	return True
@@ -134,7 +139,7 @@ def generate():
 	partcount = allmp4.count(".mp4'")
 	filter_complex = " ".join([f"[{i}:v]" for i in range(partcount)])
 	cmd = f"{FFMPEG} {allmp4} -filter_complex '{filter_complex} concat=n={partcount}:v=1 [v]' -map '[v]' -vcodec libwebp {EXTRA_WEBP} -lossless 0 '{OUTDIR}/out.webp'"
-	PRINT_CALLBACK("running cmd:", cmd)
+	PRINT_CALLBACK(f"running cmd: {cmd}")
 	if ABORT: print("!!!abort signal!!!");return 0, "abort signal"
 	run(cmd, shell=True)
 	# remove temp
@@ -147,6 +152,5 @@ def upfile():
 	if ABORT: print("!!!abort signal!!!");return 0, "abort signal"
 	#TODO: server-side thingies
 
-	#for now, lets use outside script
-	r = run(f"", shell=True)
-	return r
+	# return r
+	return False

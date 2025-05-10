@@ -57,6 +57,9 @@
 		
 	</div>
 </form>
+<div class="uk-margin-top">
+	<button class="uk-button uk-button-danger abortButton" type="button" style="cursor:not-allowed;">Abort</button>
+</div>
 
 <script>
 	const video_ext = [".mp4", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv", ".ts"];
@@ -68,6 +71,7 @@
 	const filesInput = uploadForm.querySelector('.vid');
 	const nameclass = uploadForm.querySelector('.name');
 	const succesful = document.querySelector('.letter');
+	const abort_button = document.querySelector(".abortButton")
 	
 	window.pywebview.api.get_categories().then(
 		function(response){
@@ -199,6 +203,7 @@
 			upload_file();
 			// echostuff("started!")
 			filesInput.disabled = true;
+			
 			document.querySelector('.bbutton').disabled = true;
 			document.querySelector('.vid').disabled = true;
 			document.querySelector('.about').readOnly = true;
@@ -210,6 +215,7 @@
 			document.querySelector('.filetype-other').disabled = true;
 			document.querySelector('.visibility-private').disabled = true;
 			document.querySelector('.visibility-unlisted').disabled = true;
+			abort_button.style.cursor = "pointer"
 		}
 	}
 
@@ -221,7 +227,7 @@
 		// echostuff("lenstuff")
 		window.pywebview.api.upload([window.files, window.f_name, window.f_about, window.f_category, window.f_ftype, window.f_visibility]).then(
 			function(response){
-				// echostuff("in");
+				abort_button.style.cursor = "not-allowed"
 				if (response["status"] == "success"){
 					uploadForm.querySelector('.letter').innerHTML = 'upload successful!';
 					succesful.innerHTML = "upload successful!";
@@ -234,4 +240,17 @@
 			}
 		);
 	}
+
+	abort_button.addEventListener("click", ()=>{
+		window.console.log(abort_button.style.cursor)
+		if (abort_button.style.cursor === "pointer"){
+			abort_button.style.cursor = "not-allowed"
+			window.pywebview.api.upload_abort(window.f_name).then((r)=>{
+				uploadForm.querySelector('.letter').innerHTML = r["status"];
+				succesful.innerHTML = "upload aborted!";
+				window.left = false;
+			})
+		}
+	})
+	
 </script>

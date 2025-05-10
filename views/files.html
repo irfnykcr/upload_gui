@@ -117,7 +117,7 @@ window.pywebview.api.get_categories_list().then(
 		// Recursive function to build the category tree
 		function buildCategoryTree(container, path, categoryObj) {
 			if (typeof categoryObj === 'object' && !Array.isArray(categoryObj) && Object.keys(categoryObj).length > 0) {
-				let ul = $('<ul class="uk-nav-default" uk-nav></ul>');
+				let ul = $('<ul class="uk-nav-default" uk-nav style="padding-left: 0;"></ul>');
 				
 				for (let category in categoryObj) {
 					const newPath = path ? `${path}/${category}` : category;
@@ -129,7 +129,7 @@ window.pywebview.api.get_categories_list().then(
 						li.append(`<a href="/index.html?i=files&c=${newPath}/"><span onclick="window.location.href = '/index.html?i=files&c=${newPath}/';">${category}</span><span uk-nav-parent-icon></span></a>`);
 						
 						// Recursively build subcategories
-						let subUl = $('<ul class="uk-nav-sub" uk-nav></ul>');
+						let subUl = $('<ul class="uk-nav-sub" uk-nav style="padding-left: 15px;"></ul>');
 						buildCategoryTree(subUl, newPath, value);
 						li.append(subUl);
 						ul.append(li);
@@ -138,7 +138,7 @@ window.pywebview.api.get_categories_list().then(
 						let li = $('<li class="uk-parent"></li>');
 						li.append(`<a href="/index.html?i=files&c=${newPath}/"><span onclick="window.location.href = '/index.html?i=files&c=${newPath}/';">${category}</span><span uk-nav-parent-icon></span></a>`);
 						
-						let subUl = $('<ul class="uk-nav-sub"></ul>');
+						let subUl = $('<ul class="uk-nav-sub" style="padding-left: 15px;"></ul>');
 						value.forEach(item => {
 							const itemPath = `${newPath}/${item}`;
 							subUl.append(`<li><a href="/index.html?i=files&c=${itemPath}/">${item}</a></li>`);
@@ -153,7 +153,7 @@ window.pywebview.api.get_categories_list().then(
 				container.append(ul);
 			} else if (Array.isArray(categoryObj) && categoryObj.length > 0) {
 				// Handle pure array of items
-				let ul = $('<ul class="uk-nav-default" uk-nav></ul>');
+				let ul = $('<ul class="uk-nav-default" uk-nav style="padding-left: 0;"></ul>');
 				categoryObj.forEach(item => {
 					const itemPath = `${path}/${item}`;
 					ul.append(`<li><a href="/index.html?i=files&c=${itemPath}/">${item}</a></li>`);
@@ -494,6 +494,10 @@ if (_c == null) {
 		).then(function(response) {
 			const target_dir = $(".js-filter");
 			const files = response["files"];
+			let categories = []
+			if (response["categories"] != null){
+				categories = response["categories"];
+			}
 			const apikey = response["apikey"];
 			//there should be breadcrumbs and catg-files
 			const breadcrumbs = $(".breadcrumbs");
@@ -509,6 +513,53 @@ if (_c == null) {
 				path += '/';
 			});
 			//echostuff(splitted_catg);
+			if (categories.length > 0){
+				// Render subcategories inside the current category
+				categories.forEach(goto => {
+					// const ctg = goto.replace(/\/$/, '').split('/').pop();
+
+					const imgFallback = '/stuff/folder.png';
+
+					// Create list item
+					const li = $('<li></li>');
+					li.append(`
+						<div style="position: relative; display: inline-block;">
+							<img
+							  class="folder_images"
+							  data-id="${goto}"
+							  src="${imgFallback}"
+							  style="max-width:250px!important; min-width:150px!important; max-height:250px!important; min-height:150px!important;">
+						</div>
+						<a
+						  href="/index.html?i=files&c=${goto}"
+						  style="font-size:larger; padding:10px; overflow-wrap:anywhere; display:flex; justify-content:center;">
+						  ${goto}
+						</a>
+					`);
+					catgFiles.append(li);
+
+					// Show spinner while fetching the folder thumbnail
+					const imgEl = document.querySelector(`[data-id="${goto}"]`);
+					const spinner = createSpinner(1);
+					imgEl.parentElement.appendChild(spinner);
+
+					// Fetch real folder image
+					fetch(`https://api.turkuazz.vip/v1/getimage?api-key=${apikey}&category=${encodeURIComponent(goto)}`)
+					  .then(res => {
+						if (res.ok) {
+						  imgEl.src = `https://api.turkuazz.vip/v1/getimage?api-key=${apikey}&category=${encodeURIComponent(goto)}`;
+						} else {
+						  imgEl.src = imgFallback;
+						}
+					  })
+					  .catch(() => {
+						imgEl.src = imgFallback;
+					  })
+					  .finally(() => {
+						spinner.remove();
+					  });
+				});
+			}
 			if (files.length > 0 ) {
 				files.forEach(file => {
 					let li = $('<li></li>');

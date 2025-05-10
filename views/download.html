@@ -1,5 +1,5 @@
 
-<form class="download-form" enctype="multipart/form-data" novalidate>
+<div class="download-form" enctype="multipart/form-data" novalidate>
 	<div class="uk-flex uk-margin-left">
 		<div class="uk-flex uk-flex-column">
 			<div style="width:250px;">
@@ -19,26 +19,40 @@
 				<p>console area</p>
 			</code>
 			<label for="autoscroll"><input type="checkbox" class="autoscroll" checked>autoscroll</label>
+			<div class="uk-margin-top">
+				<button class="uk-button uk-button-danger abortButton" style="cursor:not-allowed" type="button" disabled>Abort</button>
+			</div>
 		</div>
 	</div>
-</form>
+</div>
 
 <script>
-	const download_form = document.querySelector(".download-form");
-	download_form.addEventListener("submit", startdownload);
-	const result = document.querySelector(".result");
-	const bbutton = document.querySelector(".bbutton");
-	const weburl = document.querySelector(".weburl");
+	const result_el = document.querySelector(".result")
+	const weburl_el = document.querySelector(".weburl")
+	const download_button = document.querySelector(".bbutton")
+	const abort_button = document.querySelector(".abortButton")
 
-	function startdownload(e) {
-		e.preventDefault();
-		var val = weburl.value;
-		bbutton.disabled = true;
-		weburl.disabled = true;
-		window.pywebview.api.download(val).then(
-			function(response){
-				result.innerHTML = response["status"];
-			}
-		);
-	} 
+	download_button.addEventListener("click", ()=>{
+		download_button.style.cursor = "not-allowed"
+		weburl_el.style.cursor = "not-allowed"
+		abort_button.style.cursor = "not-allowed"
+		window.pywebview.api.download(weburl_el.value).then((r)=>{
+			result_el.innerHTML = r["status"];
+		})
+	})
+
+	abort_button.addEventListener("click", ()=>{
+		download_button.style.cursor = "not-allowed"
+		weburl_el.style.cursor = "not-allowed"
+		abort_button.style.cursor = "not-allowed"
+		window.pywebview.api.download_abort(weburl_el.value).then((r)=>{
+			result_el.innerHTML = r["status"];
+			download_button.style.cursor = "pointer"
+			weburl_el.style.cursor = "pointer"
+			abort_button.style.cursor = "pointer"
+		})
+	})
+
+
+
 </script>
