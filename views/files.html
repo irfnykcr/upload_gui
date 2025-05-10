@@ -312,54 +312,66 @@ function getcookie(name) {
 	if (parts.length == 2) return parts.pop().split(";").shift();
 }
 function fetchImages(weburls, type, apikey){
+    const originalWeburls = [...weburls];
+    const uncachedWeburls = [];
 
-	for (const weburl of weburls) {
-		const cacheKey = `${weburl}_${type}`;
-		const blob = window.sessionStorage.getItem(cacheKey);
-		if (blob) {
-			console.log(`Using cached data for ${weburl}: ${blob}`);
-			displayImages([weburl,blob], apikey, true);  // Function to display images, cached=true
-			weburls = weburls.filter(url => url !== weburl);  // Remove cached weburl from weburls array
-		}
-	}
-	if (weburls.length === 0) {
-		return;
-	}
-	fetch("https://api.turkuazz.vip/v1/getimages?weburls="+weburls.join(",")+"&type="+type, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'api-key': apikey
-		}
-		})
-	.then(response => response.arrayBuffer())
-	.then(buffer => {
-		const results = {};
-		let offset = 0;
-		let n = 0;
-		while (offset < buffer.byteLength) {
-			// Read weburl ID (8 bytes)
-			const idBytes = new Uint8Array(buffer.slice(offset, offset + 8));
-			const weburl = new DataView(idBytes.buffer).getBigUint64(0).toString();
+    for (const weburl of originalWeburls) {
+        const cacheKey = `${weburl}_${type}`;
+        const cachedDataUrl = window.sessionStorage.getItem(cacheKey);
+        
+        if (cachedDataUrl) {
+            console.log(`Using cached data for ${weburl}`);
+            displayImages([weburl, cachedDataUrl], apikey, true);
+        } else {
+            uncachedWeburls.push(weburl);
+        }
+    }
 
-			offset += 8;
+    if (uncachedWeburls.length === 0) {
+        return;
+    }
 
-			// Read content length (4 bytes)
-			const lengthBytes = new Uint8Array(buffer.slice(offset, offset + 4));
-			const contentLength = new DataView(lengthBytes.buffer).getUint32(0);
-			offset += 4;
+    fetch("https://api.turkuazz.vip/v1/getimages?weburls="+uncachedWeburls.join(",")+"&type="+type, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'api-key': apikey
+        }
+    })
+    .then(response => response.arrayBuffer())
+    .then(buffer => {
+		// not sure how this works
+        const results = {};
+        let offset = 0;
 
-			// Read content
-			const content = buffer.slice(offset, offset + contentLength);
-			const blob = new Blob([content], {type: 'image/jpeg'});
-			const imgUrl = URL.createObjectURL(blob);
-			results[weburl] = imgUrl;
-			window.sessionStorage.setItem(`${weburl}_${type}`, imgUrl);
-			offset += contentLength;
-		}
-        // Display the images
-        displayImages(results, apikey);
-	})
+        while (offset < buffer.byteLength) {
+            const idBytes = new Uint8Array(buffer.slice(offset, offset + 8));
+            const weburl = new DataView(idBytes.buffer).getBigUint64(0).toString();
+            offset += 8;
+
+            const lengthBytes = new Uint8Array(buffer.slice(offset, offset + 4));
+            const contentLength = new DataView(lengthBytes.buffer).getUint32(0);
+            offset += 4;
+
+            const content = buffer.slice(offset, offset + contentLength);
+            const reader = new FileReader();
+            reader.onload = function() {
+                const dataUrl = reader.result;
+                results[weburl] = dataUrl;
+                window.sessionStorage.setItem(`${weburl}_${type}`, dataUrl);
+                displayImages({[weburl]: dataUrl}, apikey);
+            };
+            
+            // conversion to base64
+            const blob = new Blob([content], {type: 'image/jpeg'});
+            reader.readAsDataURL(blob);
+            
+            offset += contentLength;
+        }
+    })
+    .catch(error => {
+        console.error("Error fetching images:", error);
+    });
 }
 const _urlParamss = new URLSearchParams(window.location.search);
 const _c = _urlParamss.get('c');
