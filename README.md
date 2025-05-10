@@ -1,9 +1,7 @@
 
-# file to text
+# file upload/download
 This project is to chunk, encrypt, compress and upload files.
-It will automatically create a folder with given input under the output directory.
-
-Added downloading & generating thumbnail functionality too.
+Has download & thumbnail generation functionality too.
 
 ## why
 
@@ -16,7 +14,7 @@ Users can download their files later with their api key.
 
 Go to the project directory
 ```bash
-cd upload_cli
+cd upload_gui
 ```
 
 Add required modules and libraries
@@ -35,7 +33,6 @@ cd ..
 
 Run the script
 ```bash
-#for uploading
 cd py_files
 python gui.py
 ```
