@@ -14,9 +14,7 @@
 					</select>
 					<br>
 					<label for="videoSelect">video:</label><br>
-					<select class="uk-select" id="videoSelect" onchange="$('#searchbyweburl').val($('#videoSelect').val())">
-	
-					</select>
+					<select class="uk-select" id="videoSelect" onchange="document.getElementById('searchbyweburl').value = this.value"></select>
 					<button class="uk-button" onclick="loadpage1();">go editing</button>
 				</div>
 			</div>
@@ -67,12 +65,17 @@
 <script>
 // select editing vid
 	function loadcategories(){
-		$("#categorySelect").empty();
+		document.getElementById('categorySelect').innerHTML = '';
 		window.pywebview.api.get_categories().then(function(response){
 			categories = response["categories"];
 			if (Object.keys(categories).length > 0) {
 				categories.forEach(ctg => {
-					$("#categorySelect").append(`<option value="${ctg}">${ctg}</option>`);
+					document.getElementById('categorySelect').appendChild(
+						Object.assign(document.createElement('option'), {
+							value: ctg,
+							textContent: ctg
+						})
+					);
 				});
 				loadVideos(categories[0]);
 			}
@@ -80,107 +83,115 @@
 	}
 	loadcategories();
 	function loadVideos(loadcatg="", weburlisfirst=true){
-		$("#videoSelect").empty();
+		document.getElementById('videoSelect').innerHTML = '';
 		if (loadcatg != "") {
-			$("#categorySelect").val(loadcatg);
+			document.getElementById('categorySelect').value = loadcatg;
 		}
-		const category = $("#categorySelect").val();
+		const category = document.getElementById('categorySelect').value;
 		if (category == null) return;
 		window.pywebview.api.get_files(category).then(function(response){
 			files = response["files"];
 			if (files.length > 0) {
 				files.forEach(file => {
-					$("#videoSelect").append(`<option value="${file[0]}">${file[1]}</option>`);
+					document.getElementById('videoSelect').appendChild(
+						Object.assign(document.createElement('option'), {
+							value: file[0],
+							textContent: file[1]
+						})
+					);
 				});
-				if (weburlisfirst === true){
-					$('#searchbyweburl').val(files[0][0]);
+				if (weburlisfirst === true) {
+					document.getElementById('searchbyweburl').value = files[0][0];
 				} else {
-					$('#videoSelect').val(weburlisfirst);
+					document.getElementById('videoSelect').value = weburlisfirst;
 				}
 			} else {
-				$("#searchbyweburl").val("");
+				document.getElementById('searchbyweburl').value = "";
 			}
 		});
 	}
 	function searchinall(){
-		$("#videoSelect").empty();
-		const search = Number($("#searchbyweburl").val());
+		document.getElementById('videoSelect').innerHTML = '';
+		const search = Number(document.getElementById('searchbyweburl').value);
 		echostuff(search);
 		window.pywebview.api.searchinall(search).then(function(response){
 			file = response["file"];
-			$("#categorySelect").val(file[2]);
-			loadVideos("",search);
+			document.getElementById('categorySelect').value = file[2];
+			loadVideos("", search);
 		});
 	}
 
 
 function remove_vid(){
-	const weburl = $("#theweburl").val()
+	const weburl = document.getElementById("theweburl").value;
 	window.pywebview.api.file_remove(weburl).then(function(response){
-		$(".page2").hide();
-		$(".page1").show();
+		document.querySelector(".page2").style.display = "none";
+		document.querySelector(".page1").style.display = "flex";
 		if (response["success"]){
-			$(".success-message").css("display", "block");
+			document.querySelector(".success-message").style.display = "block";
 		} else {
-			$(".erorr-message").css("display", "block");
+			document.querySelector(".error-message").style.display = "block";
 		}
 	});
 }
 
 // edit the selected video
 function loadcatg_p1(){
-	$("#edit_category").empty();
+	document.getElementById('edit_category').innerHTML = '';
 	window.pywebview.api.get_categories().then(function(response){
 		categories = response["categories"];
 		if (Object.keys(categories).length > 0) {
 			categories.forEach(ctg => {
-				$("#edit_category").append(`<option value="${ctg}">${ctg}</option>`);
+				const option = document.createElement('option');
+				option.value = ctg;
+				option.textContent = ctg;
+				document.getElementById('edit_category').appendChild(option);
 			});
 		}
 	});
 }
 function loadpage1(){
-	$(".success-message").css("display", "none");
-	const weburl = $("#searchbyweburl").val();
+	document.querySelector(".success-message").style.display = "none";
+	const weburl = document.getElementById("searchbyweburl").value;
 	loadcatg_p1();
 	window.pywebview.api.searchinall(weburl).then(function(response){
 		file = response["file"];
 		echostuff(file);
 		if (!file){
-			$(".page2").hide();
-			$(".page1").show();
+			document.querySelector(".page2").style.display = "none";
+			document.querySelector(".page1").style.display = "block";
 			return;
 		};
-		$(".page1").hide();
-		$(".page2").show();
-		$("#theweburl").val(file[0]);
-		$(".editing_name").val(file[1]);
-		$(".editing_about").val(file[5]);
-		$(".editing_category").val(file[2]);
-		$(`.filetype-${file[4]}`).prop('checked', true);
+		document.querySelector(".page1").style.display = "none";
+		document.querySelector(".page2").style.display = "block";
+		document.getElementById("theweburl").value = file[0];
+		document.querySelector(".editing_name").value = file[1];
+		document.querySelector(".editing_about").value = file[5];
+		document.querySelector(".editing_category").value = file[2];
+		document.querySelector(`.filetype-${file[4]}`).checked = true;
 		if (file[6] == "0") {
-			$(`.visibility-unlisted`).prop('checked', true);
+			document.querySelector(`.visibility-unlisted`).checked = true;
 		} else {
-			$(`.visibility-private`).prop('checked', true);
+			document.querySelector(`.visibility-private`).checked = true;
 		} 
 	});
 }
 
 function editvid(){
-	const weburl = $("#theweburl").val();
-	const name = $(".editing_name").val();
-	const about = $(".editing_about").val();
-	const category = $(".editing_category").val();
-	const filetype = $("input[name='ftype']:checked").val();
-	const visibility = $("input[name='visibility']:checked").val();
+	const weburl = document.getElementById("theweburl").value;
+	const name = document.querySelector(".editing_name").value;
+	const about = document.querySelector(".editing_about").value;
+	const category = document.querySelector(".editing_category").value;
+	const filetype = document.querySelector("input[name='ftype']:checked").value;
+	const visibility = document.querySelector("input[name='visibility']:checked").value;
 	window.pywebview.api.editvid(weburl, name, about, category, filetype, visibility).then(function(response){
 		echostuff(response);
-		$(".page2").hide();
-		$(".page1").show();
+		document.querySelector(".page2").style.display = "none";
+		document.querySelector(".page1").style.display = "flex";
 		if (response.startsWith("1success")){
-			$(".success-message").css("display", "block");
+			document.querySelector(".success-message").style.display = "block";
 		} else {
-			$(".erorr-message").css("display", "block");
+			document.querySelector(".error-message").style.display = "block";
 		}
 	});
 }
@@ -189,7 +200,7 @@ function editvid(){
 const urlParams = new URLSearchParams(window.location.search);
 const focusvid = urlParams.get('focus');
 if (focusvid) {
-	$('#searchbyweburl').val(focusvid);
+	document.getElementById('searchbyweburl').value = focusvid;
 	loadpage1();
 }
 function echostuff(stuff){

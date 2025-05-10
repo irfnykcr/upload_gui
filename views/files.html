@@ -65,8 +65,8 @@
 </div>
 
 <script>
-const catgFiles = $(".catg-files");
-const uploadedFiles = $(".uploaded-files");
+const catgFiles = document.querySelector(".catg-files");
+const uploadedFiles = document.querySelector(".uploaded-files");
 
 function catg_togglerr() {
 	catg_toggler = document.getElementsByClassName("catg-toggler")[0];
@@ -111,56 +111,112 @@ function echostuff(stuff){
 
 window.pywebview.api.get_categories_list().then(
 	function(response){
-		const target_dir = $(".category-list-div");
+		const target_dir = document.querySelector(".category-list-div");
 		const categories = response["categories"];
 
 		// Recursive function to build the category tree
 		function buildCategoryTree(container, path, categoryObj) {
-			if (typeof categoryObj === 'object' && !Array.isArray(categoryObj) && Object.keys(categoryObj).length > 0) {
-				let ul = $('<ul class="uk-nav-default" uk-nav style="padding-left: 0;"></ul>');
-				
-				for (let category in categoryObj) {
-					const newPath = path ? `${path}/${category}` : category;
-					const value = categoryObj[category];
-					
-					if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) {
-						// This category has subcategories
-						let li = $('<li class="uk-parent"></li>');
-						li.append(`<a href="/index.html?i=files&c=${newPath}/"><span onclick="window.location.href = '/index.html?i=files&c=${newPath}/';">${category}</span><span uk-nav-parent-icon></span></a>`);
+					if (typeof categoryObj === 'object' && !Array.isArray(categoryObj) && Object.keys(categoryObj).length > 0) {
+						let ul = document.createElement('ul');
+						ul.className = 'uk-nav-default';
+						ul.setAttribute('uk-nav', '');
+						ul.style.paddingLeft = '0';
 						
-						// Recursively build subcategories
-						let subUl = $('<ul class="uk-nav-sub" uk-nav style="padding-left: 15px;"></ul>');
-						buildCategoryTree(subUl, newPath, value);
-						li.append(subUl);
-						ul.append(li);
-					} else if (Array.isArray(value) && value.length > 0) {
-						// This category has an array of items
-						let li = $('<li class="uk-parent"></li>');
-						li.append(`<a href="/index.html?i=files&c=${newPath}/"><span onclick="window.location.href = '/index.html?i=files&c=${newPath}/';">${category}</span><span uk-nav-parent-icon></span></a>`);
-						
-						let subUl = $('<ul class="uk-nav-sub" style="padding-left: 15px;"></ul>');
-						value.forEach(item => {
-							const itemPath = `${newPath}/${item}`;
-							subUl.append(`<li><a href="/index.html?i=files&c=${itemPath}/">${item}</a></li>`);
+						for (let category in categoryObj) {
+							const newPath = path ? `${path}/${category}` : category;
+							const value = categoryObj[category];
+							
+							if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) {
+								// This category has subcategories
+								let li = document.createElement('li');
+								li.className = 'uk-parent';
+								
+								let anchor = document.createElement('a');
+								anchor.href = `/index.html?i=files&c=${newPath}/`;
+								
+								let span1 = document.createElement('span');
+								span1.onclick = function() { window.location.href = `/index.html?i=files&c=${newPath}/`; };
+								span1.textContent = category;
+								
+								let span2 = document.createElement('span');
+								span2.setAttribute('uk-nav-parent-icon', '');
+								
+								anchor.appendChild(span1);
+								anchor.appendChild(span2);
+								li.appendChild(anchor);
+								
+								// Recursively build subcategories
+								let subUl = document.createElement('ul');
+								subUl.className = 'uk-nav-sub';
+								subUl.setAttribute('uk-nav', '');
+								subUl.style.paddingLeft = '15px';
+								buildCategoryTree(subUl, newPath, value);
+								li.appendChild(subUl);
+								ul.appendChild(li);
+							} else if (Array.isArray(value) && value.length > 0) {
+								// This category has an array of items
+								let li = document.createElement('li');
+								li.className = 'uk-parent';
+								
+								let anchor = document.createElement('a');
+								anchor.href = `/index.html?i=files&c=${newPath}/`;
+								
+								let span1 = document.createElement('span');
+								span1.onclick = function() { window.location.href = `/index.html?i=files&c=${newPath}/`; };
+								span1.textContent = category;
+								
+								let span2 = document.createElement('span');
+								span2.setAttribute('uk-nav-parent-icon', '');
+								
+								anchor.appendChild(span1);
+								anchor.appendChild(span2);
+								li.appendChild(anchor);
+								
+								let subUl = document.createElement('ul');
+								subUl.className = 'uk-nav-sub';
+								subUl.style.paddingLeft = '15px';
+								
+								value.forEach(item => {
+									const itemPath = `${newPath}/${item}`;
+									let itemLi = document.createElement('li');
+									let itemLink = document.createElement('a');
+									itemLink.href = `/index.html?i=files&c=${itemPath}/`;
+									itemLink.textContent = item;
+									itemLi.appendChild(itemLink);
+									subUl.appendChild(itemLi);
+								});
+								
+								li.appendChild(subUl);
+								ul.appendChild(li);
+							} else {
+								// This is a leaf category with no children
+								let itemLi = document.createElement('li');
+								let itemLink = document.createElement('a');
+								itemLink.href = `/index.html?i=files&c=${newPath}/`;
+								itemLink.textContent = category;
+								itemLi.appendChild(itemLink);
+								ul.appendChild(itemLi);
+							}
+						}
+						container.appendChild(ul);
+					} else if (Array.isArray(categoryObj) && categoryObj.length > 0) {
+						// Handle pure array of items
+						let ul = document.createElement('ul');
+						ul.className = 'uk-nav-default';
+						ul.setAttribute('uk-nav', '');
+						ul.style.paddingLeft = '0';
+						categoryObj.forEach(item => {
+							const itemPath = `${path}/${item}`;
+							let itemLi = document.createElement('li');
+							let itemLink = document.createElement('a');
+							itemLink.href = `/index.html?i=files&c=${itemPath}/`;
+							itemLink.textContent = item;
+							itemLi.appendChild(itemLink);
+							ul.appendChild(itemLi);
 						});
-						li.append(subUl);
-						ul.append(li);
-					} else {
-						// This is a leaf category with no children
-						ul.append(`<li><a href="/index.html?i=files&c=${newPath}/">${category}</a></li>`);
+						container.appendChild(ul);
 					}
 				}
-				container.append(ul);
-			} else if (Array.isArray(categoryObj) && categoryObj.length > 0) {
-				// Handle pure array of items
-				let ul = $('<ul class="uk-nav-default" uk-nav style="padding-left: 0;"></ul>');
-				categoryObj.forEach(item => {
-					const itemPath = `${path}/${item}`;
-					ul.append(`<li><a href="/index.html?i=files&c=${itemPath}/">${item}</a></li>`);
-				});
-				container.append(ul);
-			}
-		}
 
 		// Start building from the root
 		buildCategoryTree(target_dir, "", categories);
@@ -227,11 +283,13 @@ function displayImages(data, apikey,cached=false) {
 			item.onerror = () => { item.loadFailed = true; item.src = "/stuff/best.jpeg"; };
 		}
 
-		const spinner = document.querySelector('.spinner-element');
-		if (spinner) {
-			spinner.parentElement.removeChild(spinner);
+		const container = item.parentElement;
+		if (container) {
+			const spinner = container.querySelector('.spinner-element');
+			if (spinner) {
+				container.removeChild(spinner);
+			}
 		}
-		return
 	}
 	for (const [weburl, imgSrc] of Object.entries(data)) {
 		const item = document.querySelector(`[data-overlay="${weburl}"]`);
@@ -354,7 +412,7 @@ if (_c == null) {
 			}
 
 			lastact += `</ul></div>`;
-			catgFiles.append(lastact);
+			catgFiles.innerHTML += lastact;
 			let weburls = response.map(e => e[0]);
 			// create spinner
 			document.querySelectorAll('.activater_img').forEach(item => {
@@ -419,7 +477,7 @@ if (_c == null) {
 							</li>`;
 			};
 			lastupl += `</ul></div>`;
-			uploadedFiles.append(lastupl);
+			uploadedFiles.innerHTML += lastupl;
 			// create spinner
 			document.querySelectorAll('.activater_img2').forEach(item => {
 				const spinner = createSpinner(1);
@@ -449,7 +507,7 @@ if (_c == null) {
 
 
 } else {
-	$(".sort-button").css("display", "block");
+	document.querySelector(".sort-button").style.display = "block";
 	const splitted_catg = _c.split("/");
 	echostuff("got category: " + _c);
 	window.pywebview.api.get_categories_list(_c).then( function(response){
@@ -458,11 +516,13 @@ if (_c == null) {
 			const api_key = response["api_key"]
 			if (Object.keys(categories).length > 0) {
 				categories.forEach(ctg => {
-					let li = $('<li style="margin-bottom:90px;display:flex;justify-content:center;position:relative;"></li>');
+					let li = document.createElement('li');
+					li.setAttribute('style', 'margin-bottom:90px;display:flex;justify-content:center;position:relative;');
+
 					let goto = (_c.endsWith("/") ? _c.slice(0, -1) : _c) + "/" + ctg;
 					let imgFallback = "/stuff/folder.png";
-					li.append(`<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" class="folder_images" data-id="${goto}" src="${imgFallback}">`);
-					li.append(`<a href="/index.html?i=files&c=${goto}" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${ctg}</a>`);
+					li.innerHTML = `<img style="max-height:250px !important;min-height:150px !important; min-width:150px !important;max-width:250px !important;" class="folder_images" data-id="${goto}" src="${imgFallback}">
+					<a href="/index.html?i=files&c=${goto}" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${ctg}</a>`;
 					catgFiles.append(li);
 
 					const img = document.querySelector(`[data-id="${goto}"]`);
@@ -492,7 +552,8 @@ if (_c == null) {
 		window.pywebview.api.get_files(
 			_c
 		).then(function(response) {
-			const target_dir = $(".js-filter");
+			const target_dir = document.querySelector(".js-filter");
+
 			const files = response["files"];
 			let categories = []
 			if (response["categories"] != null){
@@ -500,16 +561,17 @@ if (_c == null) {
 			}
 			const apikey = response["apikey"];
 			//there should be breadcrumbs and catg-files
-			const breadcrumbs = $(".breadcrumbs");
+			const breadcrumbs = document.querySelector(".breadcrumbs");
+
 			let path = '';
 			
 			// Build breadcrumbs dynamically for any number of levels
 			splitted_catg.forEach((crumb, index) => {
 				path += crumb;
 				if (index > 0) {
-					breadcrumbs.append(' / ');
+				breadcrumbs.innerHTML += ' / ';
 				}
-				breadcrumbs.append(`<a href="/index.html?i=files&c=${path}">${crumb}</a>`);
+				breadcrumbs.innerHTML += `<a href="/index.html?i=files&c=${path}">${crumb}</a>`;
 				path += '/';
 			});
 			//echostuff(splitted_catg);
@@ -521,8 +583,8 @@ if (_c == null) {
 					const imgFallback = '/stuff/folder.png';
 
 					// Create list item
-					const li = $('<li></li>');
-					li.append(`
+					const li = document.createElement('li');
+					li.innerHTML = `
 						<div style="position: relative; display: inline-block;">
 							<img
 							  class="folder_images"
@@ -535,7 +597,7 @@ if (_c == null) {
 						  style="font-size:larger; padding:10px; overflow-wrap:anywhere; display:flex; justify-content:center;">
 						  ${goto}
 						</a>
-					`);
+					`;
 					catgFiles.append(li);
 
 					// Show spinner while fetching the folder thumbnail
@@ -562,12 +624,12 @@ if (_c == null) {
 			}
 			if (files.length > 0 ) {
 				files.forEach(file => {
-					let li = $('<li></li>');
-					li.attr("data-name", file[1]);
-					li.attr("data-size", file[3]);
-					li.attr("data-time", file[0]);
+					let li = document.createElement('li');
+					li.setAttribute("data-name", file[1]);
+					li.setAttribute("data-size", file[3]);
+					li.setAttribute("data-time", file[0]);
 					weburl = file[0];
-					li.append(`<div style="position: relative; display: inline-block;">
+					let html = `<div style="position: relative; display: inline-block;">
 								<img id="weburl-`+file[0]+`" src="/stuff/best.jpeg" class="activater_img3 lazyload" data-overlay="${weburl}">
 								<div class="overlayfor_img3-${weburl}" style="z-index:10;position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s;">
 									<div style="position: absolute; bottom:50%;left:50%;transform:translate(-50%, -50%); width: auto; height: auto;background-color:black;opacity:0.75; pointer-events: auto;">
@@ -575,12 +637,13 @@ if (_c == null) {
 									</div>
 								</div>
 							   </div>
-							`);
+							`;
 					if (file[4] === "video") {
-						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" onclick="vlcopen('${file[0]}');" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${file[1]}</a>`);
+						html += `<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" onclick="vlcopen('${file[0]}');" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;">${file[1]}</a>`;
 					} else {
-						li.append(`<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;" target="_blank" href="https://turkuazz.vip/player?vid=${file[0]}">${file[1]}</a>`);
+						html += `<a oncontextmenu="copyTextToClipboard('${file[0]}');return false;" style="font-size:larger;padding:10px; overflow-wrap: anywhere;display:flex;justify-content:center;" target="_blank" href="https://turkuazz.vip/player?vid=${file[0]}">${file[1]}</a>`;
 					}
+					li.innerHTML = html;
 					catgFiles.append(li);
 				});
 				document.querySelectorAll('.activater_img3').forEach(item => {
@@ -618,9 +681,7 @@ if (_c == null) {
 
 			} else {
 				window.pywebview.api.get_categories_list(_c).then( function(response){
-					if (Object.keys(response["categories"]).length < 1) {
-						catgFiles.append(`<li style="margin-bottom:90px;display:flex;justify-content:center;"><a style="color:white !important;font-size:larger;padding:10px; overflow-wrap:anywhere;display:flex;justify-content:center;">no files</a></li>`);
-					}
+					catgFiles.innerHTML += `<li style="margin-bottom:90px;display:flex;justify-content:center;"><a style="color:white !important;font-size:larger;padding:10px; overflow-wrap:anywhere;display:flex;justify-content:center;">no files</a></li>`;
 				});
 			}
 		});

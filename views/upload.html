@@ -42,7 +42,7 @@
 			<p class="letter" style="color:white;text-align: center;"></p>
 			<script>
 				window.left = false;
-				$(window).bind("beforeunload",function(event) {
+				window.addEventListener("beforeunload",(event) => {
 					if(window.left) {return "Are you sure you want to leave?"};
 				});
 			</script>
@@ -192,9 +192,9 @@
 			window.left = true;
 			// reader = new FileReader();
 			// file = document.querySelector('.vid').files[0];
-			window.f_name = $('.name')[0].value;
-			window.f_about = $('.about')[0].value;
-			window.f_category = $('.category')[0].value;
+			window.f_name = uploadForm.querySelector('.name')[0].value;
+			window.f_about = uploadForm.querySelector('.about')[0].value;
+			window.f_category = uploadForm.querySelector('.category')[0].value;
 			ftype = ftype.classList[0];
 			window.f_ftype = ftype.replace("filetype-", "");
 			visibility = visibility.classList[0];

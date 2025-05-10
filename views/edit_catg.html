@@ -52,12 +52,15 @@
 
 <script>
 function loadCategories(){
-	$("#categorySelect").empty();
+	document.getElementById("categorySelect").innerHTML = "";
 	window.pywebview.api.get_categories().then(function(response){
 		const categories = response["categories"];
 		if (Object.keys(categories).length > 0) {
 			categories.forEach(ctg => {
-				$("#categorySelect").append(`<option value="${ctg}">${ctg}</option>`);
+				const option = document.createElement("option");
+				option.value = ctg;
+				option.textContent = ctg;
+				document.getElementById("categorySelect").appendChild(option);
 			});
 		}
 	});
@@ -65,59 +68,69 @@ function loadCategories(){
 
 
 function showEditCategory(){
-	const category_dir = $("#categorySelect").val();
+	const categorySelect = document.getElementById("categorySelect");
+	const category_dir = categorySelect.value;
 	if (!category_dir) return;
-	$(".page1").hide();
-	$(".page2").hide();
-	$(".page3").show();
-	$("#currentCategory").text(category_dir);
-	$("#currentCategory_name").text(category_dir.slice(0, -1).split('/').pop());
+	
+	document.querySelector(".page1").style.display = "none";
+	document.querySelector(".page2").style.display = "none";
+	document.querySelector(".page3").style.display = "block";
+	
+	document.getElementById("currentCategory").textContent = category_dir;
+	document.getElementById("currentCategory_name").textContent = category_dir.slice(0, -1).split('/').pop();
 }
 
 function deleteCategory(){
 	confirm("deleting from here is not permitted for now. visit:\n\rhttps://turkuazz.vip/")
-	// const categoryId = $("#categorySelect").val();
+	// const categoryId = document.getElementById("categorySelect").value;
 	// if (!categoryId) return;
 	// if (confirm("Are you sure you want to delete this category?")) {
 	// 	window.pywebview.api.delete_category(categoryId).then(function(response){
 	// 		if (response.startsWith("1success")){
 	// 			loadCategories();
-	// 			$(".success-message").css("display", "block").text("Category deleted successfully");
+	// 			const successMessage = document.querySelector(".success-message");
+	// 			successMessage.style.display = "block";
+	// 			successMessage.textContent = "Category deleted successfully";
 	// 			setTimeout(function(){
-	// 				$(".success-message").fadeOut();
+	// 				successMessage.style.display = "none";
 	// 			}, 3000);
 	// 		}
 	// 	});
 	// }
 }
 function showCreateCategory(){
-	$(".page1").hide();
-	$(".page3").hide();
-	$(".page2").show();
-	$("categoryParent").val("");
-	$("#categoryParent").append(`<option value="/">/</option>`);
+	document.querySelector(".page1").style.display = "none";
+	document.querySelector(".page3").style.display = "none";
+	document.querySelector(".page2").style.display = "block";
+	document.getElementById("categoryParent").value = "";
+	document.getElementById("categoryParent").innerHTML = '<option value="/">/</option>';
 	window.pywebview.api.get_categories().then(function(response){
 		const categories = response["categories"];
 		if (Object.keys(categories).length > 0) {
 			categories.forEach(ctg => {
-				$("#categoryParent").append(`<option value="${ctg}">${ctg}</option>`);
+				const option = document.createElement("option");
+				option.value = ctg;
+				option.textContent = ctg;
+				document.getElementById("categoryParent").appendChild(option);
 			});
 		}
 	});
-	$("#categoryName").val("");
+	document.getElementById("categoryName").value = "";
 }
 function createCategory(){
-	const name = $("#categoryName").val();
-	const parentCatg = $("#categoryParent").val();
+	const name = document.getElementById("categoryName").value;
+	const parentCatg = document.getElementById("categoryParent").value;
 	window.pywebview.api.create_category(name, parentCatg).then(function(response){
 		if (response.startsWith("1success")){
 			loadCategories();
-			$(".page2").hide();
-			$(".page3").hide();
-			$(".page1").show();
-			$(".success-message").css("display", "block").text("Category saved successfully");
+			document.querySelector(".page2").style.display = "none";
+			document.querySelector(".page3").style.display = "none";
+			document.querySelector(".page1").style.display = "block";
+			const successMessage = document.querySelector(".success-message");
+			successMessage.style.display = "block";
+			successMessage.textContent = "Category saved successfully";
 			setTimeout(function(){
-				$(".success-message").fadeOut();
+				successMessage.style.display = "none";
 			}, 3000);
 		} else {
 			echostuff(response);
@@ -126,17 +139,16 @@ function createCategory(){
 }
 
 function cancel(){
-	$("#categoryParent").val("");
-	$("#categoryName").val("");
-	$(".page2").hide();
-	$(".page3").hide();
-	$(".page1").show();
-	$(".success-message").hide();
+	document.getElementById("categoryParent").value = "";
+	document.getElementById("categoryName").value = "";
+	document.querySelector(".page2").style.display = "none";
+	document.querySelector(".page3").style.display = "none";
+	document.querySelector(".page1").style.display = "block";
+	document.querySelector(".success-message").style.display = "none";
 }
 
-$(document).ready(function(){
-	loadCategories();
-});
+// DOMContentLoaded and window.onload did not worked for some reason
+setTimeout(loadCategories, 0);
 
 function echostuff(stuff){
 	window.pywebview.api.echostuff(stuff);

@@ -1,7 +1,5 @@
-<script src="/js/lazysizes.js" async></script>
 <link rel="stylesheet" href="/stuff/header.css" />
 <link rel="stylesheet" href="/stuff/uikit.css" />
-<script src="/js/jquery.js"></script>
 <script src="/js/uikit.js"></script>
 <script src="/js/uikit-icons.js"></script>
 
@@ -30,10 +28,33 @@ async function loadpages(){
 	_current_page.innerHTML = `<div class="current-page" data-include="${_i}"></div>`;
 	const _includes = document.querySelectorAll('[data-include]');
 
-	$.each(_includes, function () {
-		var file = $(this).data('include') + '.html';
-		$(this).load(file);
-	});
+	_includes.forEach((element) => {
+		console.log(element.getAttribute('data-include'))
+		const file = element.getAttribute('data-include') + '.html'
+		fetch(file)
+			.then(response => response.text())
+			.then(data => {
+				element.innerHTML = data;
+				// Run any scripts that were inserted
+				const scripts = element.querySelectorAll('script');
+				scripts.forEach(script => {
+					const newScript = document.createElement('script');
+					// Copy all attributes
+					Array.from(script.attributes).forEach(attr => {
+						newScript.setAttribute(attr.name, attr.value);
+					});
+					// Copy the content
+					newScript.textContent = script.textContent;
+					// Replace the old script with the new one to execute it
+					script.parentNode.replaceChild(newScript, script);
+				});
+			})
+
+	})
+	// $.each(_includes, function () {
+	// 	var file = $(this).data('include') + '.html';
+	// 	$(this).load(file);
+	// });
 }
 
 async function makevisible(){
